@@ -1,0 +1,4 @@
+[submodule "external/yoga"]
+	path = external/yoga
+	url = https://github.com/facebook/yoga.git
+	branch = release-v3.2
