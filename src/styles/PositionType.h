@@ -1,13 +1,12 @@
-#ifndef __POSITION_TYPE_H__
-#define __POSITION_TYPE_H__
+#pragma once
 
 namespace style
 {
     enum class PositionType
     {
         Relative,
-        Absolute
+        Absolute,
+        Static
     };
 }
 
-#endif

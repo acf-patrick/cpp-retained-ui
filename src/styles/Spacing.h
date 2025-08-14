@@ -1,5 +1,4 @@
-#ifndef __SPACING_H__
-#define __SPACING_H__
+#pragma once
 
 #include <optional>
 
@@ -30,7 +29,12 @@ namespace style
         std::optional<float> marginRatioRight;
         std::optional<float> marginRatioTop;
         std::optional<float> marginRatioBottom;
+        
+        std::optional<float> paddingRatio; // ratio of parent's padding
+        std::optional<float> paddingRatioLeft;
+        std::optional<float> paddingRatioRight;
+        std::optional<float> paddingRatioTop;
+        std::optional<float> paddingRatioBottom;
     };
 }
 
-#endif

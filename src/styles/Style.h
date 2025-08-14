@@ -1,5 +1,4 @@
-#ifndef __STYLE_H__
-#define __STYLE_H__
+#pragma once
 
 #include <optional>
 #include "./Flex.h"
@@ -22,4 +21,3 @@ namespace style
     };
 }
 
-#endif

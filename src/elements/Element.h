@@ -1,5 +1,4 @@
-#ifndef __ELEMENT_H__
-#define __ELEMENT_H__
+#pragma once
 
 #include <yoga/YGNode.h>
 #include <yoga/YGNodeStyle.h>
@@ -8,101 +7,49 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <variant>
+#include <unordered_map>
+
 #include "../styles/Style.h"
+#include "../utils/functions.h"
 
 namespace element
 {
     class Element
     {
+        style::Style _style;
+        static unsigned int nextId;
+
     protected:
         YGNodeRef _yogaNode;
+        unsigned int _id;
         std::vector<std::shared_ptr<Element>> _children;
 
-    public:
-        Element()
-        {
-            _yogaNode = YGNodeNew();
-        }
+        void updateOverflow(style::Overflow overflow);
+        void updateDisplay(style::Display display);
+        void updatePosition(style::PositionType position);
+        void updateFlex(const style::Flex &flex);
+        void updateSpacing(const style::Spacing &spacing);
+        void updateSize(const style::Size &size);
 
-        virtual ~Element()
-        {
-            YGNodeFree(_yogaNode);
-        }
+    public:
+        Element();
+        virtual ~Element();
 
         virtual void render(sf::RenderWindow &window) = 0;
 
-        void appendChild(std::shared_ptr<Element> child)
-        {
-            if (!child)
-                return;
+        void appendChild(std::shared_ptr<Element> child);
 
-            _children.push_back(child);
-            YGNodeInsertChild(_yogaNode, child->_yogaNode, _children.size() - 1);
-        }
+        void removeChild(std::shared_ptr<Element> child);
 
-        void removeChild(std::shared_ptr<Element> child)
-        {
-            auto it = std::find(_children.begin(), _children.end(), child);
-            if (it != _children.end())
-            {
-                YGNodeRemoveChild(_yogaNode, child->_yogaNode);
-                _children.erase(it);
-            }
-        }
+        void removeAllChildren();
 
-        void removeAllChildren()
-        {
-            YGNodeRemoveAllChildren(_yogaNode);
-            _children.clear();
-        }
+        void updateStyle(const style::Style &style);
 
-        void updateStyle(const style::Style &style)
-        {
-            /* POC using flex-direction, width/height and margin */
+        unsigned int getId() const;
 
-            if (style.flex)
-            {
-                if (auto dir = style.flex->flexDirection)
-                {
-                    switch (*dir)
-                    {
-                    case style::FlexDirection::Row:
-                        YGNodeStyleSetFlexDirection(_yogaNode, YGFlexDirectionRow);
-                        break;
-                    case style::FlexDirection::Column:
-                        YGNodeStyleSetFlexDirection(_yogaNode, YGFlexDirectionColumn);
-                        break;
-                    case style::FlexDirection::RowReverse:
-                        YGNodeStyleSetFlexDirection(_yogaNode, YGFlexDirectionRowReverse);
-                        break;
-                    case style::FlexDirection::ColumnReverse:
-                        YGNodeStyleSetFlexDirection(_yogaNode, YGFlexDirectionColumnReverse);
-                        break;
-                    }
-                }
-            }
+        style::Style getStyle() const;
 
-            if (auto size = style.size)
-            {
-                if (auto width = size->width)
-                {
-                    YGNodeStyleSetWidth(_yogaNode, *width);
-                }
-                if (auto height = size->height)
-                {
-                    YGNodeStyleSetHeight(_yogaNode, *height);
-                }
-            }
-
-            if (auto spacing = style.spacing)
-            {
-                if (auto margin = spacing->margin)
-                {
-                    YGNodeStyleSetMargin(_yogaNode, YGEdgeAll, *margin);
-                }
-            }
-        }
+        std::vector<std::shared_ptr<Element>> getChildren();
     };
 }
-
-#endif

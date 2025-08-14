@@ -9,7 +9,8 @@ set(YOGA_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
 set(YOGA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(YOGA_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
-file(GLOB_RECURSE sources "src/")
+set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+file(GLOB_RECURSE SOURCES ${SOURCE_DIR}/*.c ${SOURCE_DIR}/*.cpp)
 
 add_subdirectory(external/yoga)
 
@@ -22,7 +23,7 @@ FetchContent_Declare(SFML
     SYSTEM)
 FetchContent_MakeAvailable(SFML)
 
-add_executable(main src/main.cpp)
+add_executable(main src/main.cpp ${SOURCES})
 target_compile_features(main PRIVATE cxx_std_17)
 
 target_include_directories(main PRIVATE src external/yoga/yoga)

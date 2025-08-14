@@ -1,5 +1,4 @@
-#ifndef __OVERFLOW_H__
-#define __OVERFLOW_H__
+#pragma once
 
 namespace style
 {
@@ -11,4 +10,3 @@ namespace style
     };
 }
 
-#endif

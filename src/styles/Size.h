@@ -1,5 +1,4 @@
-#ifndef __SIZE_H__
-#define __SIZE_H__
+#pragma once
 
 #include <optional>
 
@@ -7,7 +6,6 @@ namespace style
 {
     struct Size
     {
-        Size() = default;
         std::optional<int> width;  // set explicit width
         std::optional<int> height; // set explicit height
         std::optional<int> minWidth;
@@ -20,4 +18,3 @@ namespace style
     };
 }
 
-#endif

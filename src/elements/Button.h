@@ -1,8 +1,6 @@
-#ifndef __BUTTON_H__
-#define __BUTTON_H__
+#pragma once
 
 #include "./Element.h"
-#include <iostream>
 #include <yoga/YGNodeLayout.h>
 
 namespace element
@@ -12,9 +10,9 @@ namespace element
         sf::RectangleShape _rect;
 
     public:
-        Button()
+        Button(const sf::Color& color)
         {
-            _rect.setFillColor(sf::Color(255, 0, 255));
+            _rect.setFillColor(color);
         }
 
         void render(sf::RenderWindow &window) override
@@ -27,13 +25,7 @@ namespace element
             _rect.setPosition(sf::Vector2f(left, top));
             _rect.setSize({width, height});
             window.draw(_rect);
-
-            for (auto &child : _children)
-            {
-                child->render(window);
-            }
         }
     };
 }
 
-#endif

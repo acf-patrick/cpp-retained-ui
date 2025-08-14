@@ -1,5 +1,4 @@
-#ifndef __FLEX_H__
-#define __FLEX_H__
+#pragma once
 
 #include <optional>
 #include <variant>
@@ -60,4 +59,3 @@ namespace style
     };
 }
 
-#endif
