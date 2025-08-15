@@ -1,45 +1,24 @@
-#include <SFML/Graphics.hpp>
+#include <raylib.h>
+#include <ui.h>
 
-#include "./elements.h"
-#include "./styles/Style.h"
+#include <memory>
 
-int main()
-{
-    sf::RenderWindow window(sf::VideoMode({480, 360}), "Hello world!", sf::Style::Titlebar | sf::Style::Close | sf::Style::Resize);
+#define WINDOW_WIDTH 480
+#define WINDOW_HEIGHT 360
 
-    auto root = std::make_shared<element::Root>(window.getSize());
+int main() {
+  InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Reatined UI with raylib");
 
-    style::Style buttonStyle;
-    auto &size = buttonStyle.size.emplace();
-    size.width = 72;
-    size.height = 72;
+  Vector2 windowSize = {.x = WINDOW_WIDTH, .y = WINDOW_HEIGHT};
+  auto root = std::make_shared<ui::element::Root>(windowSize);
 
-    auto btn1 = std::make_shared<element::Button>(sf::Color(255, 0, 0));
-    btn1->updateStyle(buttonStyle);
-    root->appendChild(btn1);
+  while (!WindowShouldClose()) {
+    BeginDrawing();
+    ClearBackground(BLACK);
+    root->render();
+    EndDrawing();
+  }
 
-    auto btn2 = std::make_shared<element::Button>(sf::Color(255, 0, 255));
-    btn2->updateStyle(buttonStyle);
-    root->appendChild(btn2);
-
-    while (window.isOpen())
-    {
-        while (const std::optional event = window.pollEvent())
-        {
-            if (event->is<sf::Event::Closed>())
-                window.close();
-
-            if (auto resized = event->getIf<sf::Event::Resized>())
-            {
-                sf::FloatRect visibleArea(sf::Vector2f(0, 0), sf::Vector2f(resized->size));
-                window.setView(sf::View(visibleArea));
-            }
-        }
-
-        window.clear();
-        root->render(window);
-        window.display();
-    }
-
-    return 0;
+  CloseWindow();
+  return 0;
 }
