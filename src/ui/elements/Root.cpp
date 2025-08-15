@@ -17,6 +17,10 @@ Root::Root(const Vector2& windowSize) {
   size.width = windowSize.x;
   size.height = windowSize.y;
 
+  auto& flex = rootStyle.flex.emplace();
+  flex.gap.emplace(10);
+  flex.justifyContent.emplace(ui::style::JustifyContent::SpaceBetween);
+
   updateStyle(rootStyle);
 }
 

@@ -1,7 +1,7 @@
 #include "./Element.h"
 
-#include <unordered_map>
 #include <algorithm>
+#include <unordered_map>
 
 namespace ui {
 namespace element {
@@ -154,6 +154,27 @@ void Element::updateFlex(const style::Flex& flex) {
     if (auto value = std::get_if<style::FlexBasisValue>(&(*flexBasis)))
       YGNodeStyleSetFlexBasis(_yogaNode, value->value);
   }
+
+  if (auto gap = flex.gap)
+    YGNodeStyleSetGap(_yogaNode, YGGutterAll, *gap);
+
+  if (auto rowGap = flex.rowGap)
+    YGNodeStyleSetGap(_yogaNode, YGGutterRow, *rowGap);
+
+  if (auto columnGap = flex.columnGap)
+    YGNodeStyleSetGap(_yogaNode, YGGutterColumn, *columnGap);
+
+  if (auto gapRatio = flex.gapRatio)
+    YGNodeStyleSetGapPercent(_yogaNode, YGGutterAll,
+                             100 * utils::clampRatio(*gapRatio));
+
+  if (auto rowGapRatio = flex.rowGapRatio)
+    YGNodeStyleSetGapPercent(_yogaNode, YGGutterRow,
+                             100 * utils::clampRatio(*rowGapRatio));
+
+  if (auto columnGapRatio = flex.columnGapRatio)
+    YGNodeStyleSetGapPercent(_yogaNode, YGGutterColumn,
+                             100 * utils::clampRatio(*columnGapRatio));
 }
 
 void Element::updateSpacing(const style::Spacing& spacing) {

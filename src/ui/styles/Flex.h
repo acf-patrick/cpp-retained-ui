@@ -38,6 +38,12 @@ struct Flex {
   std::optional<float> flexShrink;
   std::optional<std::variant<FlexBasisAuto, FlexBasisPercent, FlexBasisValue>>
       flexBasis;
+  std::optional<float> gap; // for both horizontal and vertical
+  std::optional<float> rowGap;
+  std::optional<float> columnGap;
+  std::optional<float> gapRatio; // ratio of parent's size for both horizontal and vertial gaps
+  std::optional<float> rowGapRatio;
+  std::optional<float> columnGapRatio;
 };
 
 }  // namespace style
