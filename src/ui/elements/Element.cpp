@@ -1,5 +1,7 @@
 #include "./Element.h"
 
+#include <yoga/YGNodeLayout.h>
+
 #include <algorithm>
 #include <unordered_map>
 
@@ -8,9 +10,18 @@ namespace element {
 
 unsigned int Element::nextId = 0;
 
+std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,
+                          std::shared_ptr<Element> child) {
+  parent->appendChild(child);
+  child->_parent = parent;
+
+  return parent;
+}
+
 Element::Element() {
   _id = nextId++;
   _yogaNode = YGNodeNew();
+  _absolutePosition = {.x = 0.0, .y = 0.0};
 }
 
 Element::~Element() {
@@ -38,8 +49,34 @@ void Element::removeAllChildren() {
   _children.clear();
 }
 
+Rectangle Element::getBoundingRect() const {
+  Rectangle bb = {.x = _absolutePosition.x,
+                  .y = _absolutePosition.y,
+                  .width = YGNodeLayoutGetWidth(_yogaNode),
+                  .height = YGNodeLayoutGetHeight(_yogaNode)};
+  return bb;
+}
+
+std::shared_ptr<Element> Element::getParent() {
+  if (auto parent = _parent.lock())
+    return parent;
+  return nullptr;
+}
+
 std::vector<std::shared_ptr<Element>> Element::getChildren() {
   return _children;
+}
+
+std::vector<std::shared_ptr<Element>> Element::getSiblings() {
+  std::vector<std::shared_ptr<Element>> siblings;
+
+  if (auto parent = _parent.lock()) {
+    for (auto sibling : parent->_children)
+      if (sibling->_id != _id)
+        siblings.emplace_back(sibling);
+  }
+
+  return siblings;
 }
 
 unsigned int Element::getId() const {
@@ -48,6 +85,15 @@ unsigned int Element::getId() const {
 
 style::Style Element::getStyle() const {
   return _style;
+}
+
+void Element::updateAbsolutePosition() {
+  if (auto parent = _parent.lock()) {
+    _absolutePosition.x =
+        YGNodeLayoutGetLeft(_yogaNode) + parent->_absolutePosition.x;
+    _absolutePosition.y =
+        YGNodeLayoutGetTop(_yogaNode) + parent->_absolutePosition.y;
+  }
 }
 
 void Element::updateStyle(const style::Style& style) {

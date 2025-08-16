@@ -3,3 +3,4 @@
 #include "./elements/Element.h"
 #include "./elements/Root.h"
 #include "./elements/Button.h"
+#include "./elements/Text.h"

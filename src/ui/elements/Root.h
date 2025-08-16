@@ -12,7 +12,10 @@ class Root : public Element {
  public:
   Root(const Vector2& windowSize);
   ~Root();
+  
   void render() override;
+// TODO : create dirty flags
+  void calculateLayout();
 };
 
 }  // namespace element

@@ -14,12 +14,8 @@ class Button : public Element {
   Button(const Color& color) { _color = color; }
 
   void render() override {
-    float left = YGNodeLayoutGetLeft(_yogaNode);
-    float top = YGNodeLayoutGetTop(_yogaNode);
-    float width = YGNodeLayoutGetWidth(_yogaNode);
-    float height = YGNodeLayoutGetHeight(_yogaNode);
-
-    DrawRectangle(left, top, width, height, _color);
+    const auto bb = getBoundingRect();
+    DrawRectangle(bb.x, bb.y, bb.width, bb.height, _color);
   }
 };
 

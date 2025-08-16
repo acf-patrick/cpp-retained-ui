@@ -18,7 +18,6 @@ Root::Root(const Vector2& windowSize) {
   size.height = windowSize.y;
 
   auto& flex = rootStyle.flex.emplace();
-  flex.gap.emplace(10);
   flex.justifyContent.emplace(ui::style::JustifyContent::SpaceBetween);
 
   updateStyle(rootStyle);
@@ -28,9 +27,28 @@ Root::~Root() {
   YGConfigFree(_config);
 }
 
-void Root::render() {
+void Root::calculateLayout() {
   YGNodeCalculateLayout(_yogaNode, YGUndefined, YGUndefined, YGDirectionLTR);
 
+  std::queue<Element*> queue;
+  queue.push(this);
+  std::unordered_set<unsigned int> visitedIds;
+
+  while (!queue.empty()) {
+    auto node = queue.front();
+    queue.pop();
+
+    if (visitedIds.count(node->getId()) > 0)
+      continue;
+
+    node->updateAbsolutePosition();
+    visitedIds.emplace(node->getId());
+    for (auto& child : node->getChildren())
+      queue.push(child.get());
+  }
+}
+
+void Root::render() {
   std::queue<Element*> queue;
   queue.push(this);
   std::unordered_set<unsigned int> visitedIds;
