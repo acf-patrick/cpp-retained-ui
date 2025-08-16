@@ -8,13 +8,18 @@ namespace element {
 
 class Root : public Element {
   YGConfigRef _config;
+  bool _dirty = true; // should calculate layout at least once
+
+  void onDirtyFlagChanged() override;
 
  public:
   Root(const Vector2& windowSize);
   ~Root();
   
   void render() override;
-// TODO : create dirty flags
+
+  bool shouldRecalculateLayout() const;
+
   void calculateLayout();
 };
 

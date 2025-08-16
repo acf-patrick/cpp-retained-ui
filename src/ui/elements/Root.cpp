@@ -14,8 +14,9 @@ Root::Root(const Vector2& windowSize) {
 
   style::Style rootStyle;
   auto& size = rootStyle.size.emplace();
-  size.width = windowSize.x;
-  size.height = windowSize.y;
+
+  size.width = utils::Value<int>(windowSize.x);
+  size.height = utils::Value<int>(windowSize.y);
 
   auto& flex = rootStyle.flex.emplace();
   flex.justifyContent.emplace(ui::style::JustifyContent::SpaceBetween);
@@ -25,6 +26,14 @@ Root::Root(const Vector2& windowSize) {
 
 Root::~Root() {
   YGConfigFree(_config);
+}
+
+bool Root::shouldRecalculateLayout() const {
+  return _dirty;
+}
+
+void Root::onDirtyFlagChanged() {
+  _dirty = true;
 }
 
 void Root::calculateLayout() {
@@ -46,6 +55,8 @@ void Root::calculateLayout() {
     for (auto& child : node->getChildren())
       queue.push(child.get());
   }
+
+  _dirty = false;
 }
 
 void Root::render() {
@@ -57,7 +68,7 @@ void Root::render() {
     auto node = queue.front();
     queue.pop();
 
-    if (visitedIds.count(node->getId()) > 0)
+    if (visitedIds.count(node->getId()) > 0 || node->isNotDisplayed())
       continue;
 
     if (node != this)

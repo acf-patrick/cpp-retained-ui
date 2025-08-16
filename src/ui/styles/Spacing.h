@@ -1,40 +1,32 @@
 #pragma once
 
+#include "../../utils/types.h"
+
 #include <optional>
 
 namespace ui {
 namespace style {
 
 struct Spacing {
-  std::optional<int> margin;  // margin for all four directions
-  std::optional<int> marginLeft;
-  std::optional<int> marginRight;
-  std::optional<int> marginTop;
-  std::optional<int> marginBottom;
+  std::optional<utils::ValueRatioAuto<int>>
+      margin;  // margin for all four directions
+  std::optional<utils::ValueRatioAuto<int>> marginLeft;
+  std::optional<utils::ValueRatioAuto<int>> marginRight;
+  std::optional<utils::ValueRatioAuto<int>> marginTop;
+  std::optional<utils::ValueRatioAuto<int>> marginBottom;
 
-  std::optional<int> padding;  // padding for all four directions
-  std::optional<int> paddingLeft;
-  std::optional<int> paddingRight;
-  std::optional<int> paddingTop;
-  std::optional<int> paddingBottom;
+  std::optional<utils::ValueRatio<int>>
+      padding;  // padding for all four directions
+  std::optional<utils::ValueRatio<int>> paddingLeft;
+  std::optional<utils::ValueRatio<int>> paddingRight;
+  std::optional<utils::ValueRatio<int>> paddingTop;
+  std::optional<utils::ValueRatio<int>> paddingBottom;
 
-  std::optional<int> border;  // border for all four directions
-  std::optional<int> borderLeft;
-  std::optional<int> borderRight;
-  std::optional<int> borderTop;
-  std::optional<int> borderBottom;
-
-  std::optional<float> marginRatio;  // ratio of parent's margin
-  std::optional<float> marginRatioLeft;
-  std::optional<float> marginRatioRight;
-  std::optional<float> marginRatioTop;
-  std::optional<float> marginRatioBottom;
-
-  std::optional<float> paddingRatio;  // ratio of parent's padding
-  std::optional<float> paddingRatioLeft;
-  std::optional<float> paddingRatioRight;
-  std::optional<float> paddingRatioTop;
-  std::optional<float> paddingRatioBottom;
+  std::optional<float> border;  // border for all four directions
+  std::optional<float> borderLeft;
+  std::optional<float> borderRight;
+  std::optional<float> borderTop;
+  std::optional<float> borderBottom;
 };
 
 }  // namespace style

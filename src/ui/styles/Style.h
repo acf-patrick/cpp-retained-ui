@@ -5,6 +5,7 @@
 #include "./Flex.h"
 #include "./Overflow.h"
 #include "./PositionType.h"
+#include "./Position.h"
 #include "./Size.h"
 #include "./Spacing.h"
 
@@ -15,7 +16,8 @@ struct Style {
   std::optional<Size> size;
   std::optional<Spacing> spacing;
   std::optional<Flex> flex;
-  std::optional<PositionType> position;
+  std::optional<PositionType> positionType;
+  std::optional<Position> position;
   std::optional<Display> display;
   std::optional<Overflow> overflow;
 };

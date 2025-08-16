@@ -1,5 +1,7 @@
 #include "./Element.h"
 
+#include "../../utils/functions.h"
+
 #include <yoga/YGNodeLayout.h>
 
 #include <algorithm>
@@ -11,7 +13,7 @@ namespace element {
 unsigned int Element::nextId = 0;
 
 std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,
-                          std::shared_ptr<Element> child) {
+                                              std::shared_ptr<Element> child) {
   parent->appendChild(child);
   child->_parent = parent;
 
@@ -26,6 +28,21 @@ Element::Element() {
 
 Element::~Element() {
   YGNodeFree(_yogaNode);
+}
+
+bool Element::isNotDisplayed() const {
+  if (auto display = _style.display) {
+    return *display == ui::style::Display::None;
+  }
+
+  return false;
+}
+
+void Element::onDirtyFlagChanged() { /* Do nothing */ }
+
+void Element::markAsDirty() {
+  for (auto parent = _parent.lock(); parent; parent = parent->getParent())
+    parent->onDirtyFlagChanged();
 }
 
 void Element::appendChild(std::shared_ptr<Element> child) {
@@ -96,24 +113,53 @@ void Element::updateAbsolutePosition() {
   }
 }
 
+bool Element::shouldTriggerDirtyFlag(int updateType) const {
+  return updateType & (UpdateStyleType::Display | UpdateStyleType::Overflow |
+                       UpdateStyleType::Position | UpdateStyleType::Spacing |
+                       UpdateStyleType::Size | UpdateStyleType::Flex |
+                       UpdateStyleType::PositionType);
+}
+
 void Element::updateStyle(const style::Style& style) {
-  if (auto flex = style.flex)
+  unsigned int updateType = UpdateStyleType::None;
+
+  if (auto flex = style.flex) {
     updateFlex(*flex);
+    updateType |= UpdateStyleType::Flex;
+  }
 
-  if (auto size = style.size)
+  if (auto size = style.size) {
     updateSize(*size);
+    updateType |= UpdateStyleType::Size;
+  }
 
-  if (auto spacing = style.spacing)
+  if (auto spacing = style.spacing) {
     updateSpacing(*spacing);
+    updateType |= UpdateStyleType::Spacing;
+  }
 
-  if (auto position = style.position)
+  if (auto position = style.position) {
     updatePosition(*position);
+    updateType |= UpdateStyleType::Position;
+  }
 
-  if (auto display = style.display)
+  if (auto position = style.positionType) {
+    updatePositionType(*position);
+    updateType |= UpdateStyleType::PositionType;
+  }
+
+  if (auto display = style.display) {
     updateDisplay(*display);
+    updateType |= UpdateStyleType::Display;
+  }
 
-  if (auto overflow = style.overflow)
+  if (auto overflow = style.overflow) {
     updateOverflow(*overflow);
+    updateType |= UpdateStyleType::Overflow;
+  }
+
+  if (shouldTriggerDirtyFlag(updateType))
+    markAsDirty();
 
   _style = style;
 }
@@ -136,7 +182,28 @@ void Element::updateDisplay(style::Display display) {
   YGNodeStyleSetDisplay(_yogaNode, displays[display]);
 }
 
-void Element::updatePosition(style::PositionType position) {
+void Element::updatePosition(const style::Position& position) {
+  std::unordered_map<YGEdge, std::optional<utils::ValueRatioAuto<float>>>
+      positions = {{YGEdgeLeft, position.left},
+                   {YGEdgeRight, position.right},
+                   {YGEdgeTop, position.top},
+                   {YGEdgeBottom, position.bottom}};
+
+  for (auto& [edge, optPosition] : positions) {
+    if (auto position = optPosition) {
+      if (auto value = std::get_if<utils::Value<float>>(&*position))
+        YGNodeStyleSetPosition(_yogaNode, edge, value->value);
+
+      if (auto ratio = std::get_if<utils::Ratio>(&*position))
+        YGNodeStyleSetPosition(_yogaNode, edge, ratio->ratio);
+
+      if (std::holds_alternative<utils::Auto>(*position))
+        YGNodeStyleSetPositionAuto(_yogaNode, edge);
+    }
+  }
+}
+
+void Element::updatePositionType(style::PositionType position) {
   std::unordered_map<style::PositionType, YGPositionType> positions = {
       {style::PositionType::Absolute, YGPositionTypeAbsolute},
       {style::PositionType::Relative, YGPositionTypeRelative},
@@ -224,108 +291,88 @@ void Element::updateFlex(const style::Flex& flex) {
 }
 
 void Element::updateSpacing(const style::Spacing& spacing) {
-  // margin
+  // margins
 
-  if (auto margin = spacing.margin)
-    YGNodeStyleSetMargin(_yogaNode, YGEdgeAll, *margin);
+  std::unordered_map<YGEdge, std::optional<utils::ValueRatioAuto<int>>>
+      margins = {{YGEdgeAll, spacing.margin},
+                 {YGEdgeLeft, spacing.marginLeft},
+                 {YGEdgeRight, spacing.marginRight},
+                 {YGEdgeTop, spacing.marginTop},
+                 {YGEdgeBottom, spacing.marginBottom}};
 
-  if (auto l = spacing.marginLeft)
-    YGNodeStyleSetMargin(_yogaNode, YGEdgeLeft, *l);
+  for (auto& [edge, optMargin] : margins) {
+    if (auto margin = optMargin) {
+      if (auto marginValue = std::get_if<utils::Value<int>>(&*margin))
+        YGNodeStyleSetMargin(_yogaNode, YGEdgeAll, marginValue->value);
 
-  if (auto r = spacing.marginRight)
-    YGNodeStyleSetMargin(_yogaNode, YGEdgeRight, *r);
+      if (auto marginRatio = std::get_if<utils::Ratio>(&*margin))
+        YGNodeStyleSetMarginPercent(
+            _yogaNode, YGEdgeAll, 100 * utils::clampRatio(marginRatio->ratio));
 
-  if (auto t = spacing.marginTop)
-    YGNodeStyleSetMargin(_yogaNode, YGEdgeTop, *t);
+      if (std::get_if<utils::Auto>(&*margin))
+        YGNodeStyleSetMarginAuto(_yogaNode, YGEdgeAll);
+    }
+  }
 
-  if (auto b = spacing.marginBottom)
-    YGNodeStyleSetMargin(_yogaNode, YGEdgeBottom, *b);
+  // paddings
 
-  // padding
+  std::unordered_map<YGEdge, std::optional<utils::ValueRatio<int>>> paddings = {
+      {YGEdgeAll, spacing.padding},
+      {YGEdgeLeft, spacing.paddingLeft},
+      {YGEdgeRight, spacing.paddingRight},
+      {YGEdgeTop, spacing.paddingTop},
+      {YGEdgeBottom, spacing.paddingBottom}};
 
-  if (auto padding = spacing.padding)
-    YGNodeStyleSetPadding(_yogaNode, YGEdgeAll, *padding);
+  for (auto& [edge, optPadding] : paddings) {
+    if (auto padding = optPadding) {
+      if (auto paddingValue = std::get_if<utils::Value<int>>(&*padding))
+        YGNodeStyleSetPadding(_yogaNode, YGEdgeAll, paddingValue->value);
 
-  if (auto l = spacing.paddingLeft)
-    YGNodeStyleSetPadding(_yogaNode, YGEdgeLeft, *l);
+      if (auto paddingRatio = std::get_if<utils::Ratio>(&*padding))
+        YGNodeStyleSetPaddingPercent(
+            _yogaNode, YGEdgeAll, 100 * utils::clampRatio(paddingRatio->ratio));
+    }
+  }
 
-  if (auto r = spacing.paddingRight)
-    YGNodeStyleSetPadding(_yogaNode, YGEdgeRight, *r);
+  // borders
 
-  if (auto t = spacing.paddingTop)
-    YGNodeStyleSetPadding(_yogaNode, YGEdgeTop, *t);
+  std::unordered_map<YGEdge, std::optional<float>> borders = {
+      {YGEdgeAll, spacing.border},
+      {YGEdgeLeft, spacing.borderLeft},
+      {YGEdgeRight, spacing.borderRight},
+      {YGEdgeTop, spacing.borderTop},
+      {YGEdgeBottom, spacing.borderBottom}};
 
-  if (auto b = spacing.paddingBottom)
-    YGNodeStyleSetPadding(_yogaNode, YGEdgeBottom, *b);
-
-  // border
-
-  if (auto border = spacing.border)
-    YGNodeStyleSetBorder(_yogaNode, YGEdgeAll, *border);
-
-  if (auto l = spacing.borderLeft)
-    YGNodeStyleSetBorder(_yogaNode, YGEdgeLeft, *l);
-
-  if (auto r = spacing.borderRight)
-    YGNodeStyleSetBorder(_yogaNode, YGEdgeRight, *r);
-
-  if (auto t = spacing.borderTop)
-    YGNodeStyleSetBorder(_yogaNode, YGEdgeTop, *t);
-
-  if (auto b = spacing.borderBottom)
-    YGNodeStyleSetBorder(_yogaNode, YGEdgeBottom, *b);
-
-  // margin-ratio
-
-  if (auto ratio = spacing.marginRatio)
-    YGNodeStyleSetMarginPercent(_yogaNode, YGEdgeAll,
-                                100 * utils::clampRatio(*ratio));
-
-  if (auto l = spacing.marginRatioLeft)
-    YGNodeStyleSetMarginPercent(_yogaNode, YGEdgeLeft,
-                                100 * utils::clampRatio(*l));
-
-  if (auto r = spacing.marginRatioRight)
-    YGNodeStyleSetMarginPercent(_yogaNode, YGEdgeRight,
-                                100 * utils::clampRatio(*r));
-
-  if (auto t = spacing.marginRatioTop)
-    YGNodeStyleSetMarginPercent(_yogaNode, YGEdgeTop,
-                                100 * utils::clampRatio(*t));
-
-  if (auto b = spacing.marginRatioBottom)
-    YGNodeStyleSetMarginPercent(_yogaNode, YGEdgeBottom,
-                                100 * utils::clampRatio(*b));
-
-  // padding-ratio
-
-  if (auto ratio = spacing.paddingRatio)
-    YGNodeStyleSetPaddingPercent(_yogaNode, YGEdgeAll,
-                                 100 * utils::clampRatio(*ratio));
-
-  if (auto l = spacing.paddingRatioLeft)
-    YGNodeStyleSetPaddingPercent(_yogaNode, YGEdgeLeft,
-                                 100 * utils::clampRatio(*l));
-
-  if (auto r = spacing.paddingRatioRight)
-    YGNodeStyleSetPaddingPercent(_yogaNode, YGEdgeRight,
-                                 100 * utils::clampRatio(*r));
-
-  if (auto t = spacing.paddingRatioTop)
-    YGNodeStyleSetPaddingPercent(_yogaNode, YGEdgeTop,
-                                 100 * utils::clampRatio(*t));
-
-  if (auto b = spacing.paddingRatioBottom)
-    YGNodeStyleSetPaddingPercent(_yogaNode, YGEdgeBottom,
-                                 100 * utils::clampRatio(*b));
+  for (auto& [edge, optBorder] : borders) {
+    if (auto border = optBorder) {
+      YGNodeStyleSetBorder(_yogaNode, YGEdgeAll, *border);
+    }
+  }
 }
 
 void Element::updateSize(const style::Size& size) {
-  if (auto width = size.width)
-    YGNodeStyleSetWidth(_yogaNode, *width);
+  if (auto width = size.width) {
+    if (auto value = std::get_if<utils::Value<int>>(&*width))
+      YGNodeStyleSetWidth(_yogaNode, value->value);
 
-  if (auto height = size.height)
-    YGNodeStyleSetHeight(_yogaNode, *height);
+    if (auto ratio = std::get_if<utils::Ratio>(&*width))
+      YGNodeStyleSetWidthPercent(_yogaNode, ratio->ratio);
+
+    if (std::holds_alternative<utils::Auto>(*width))
+      YGNodeStyleSetWidthAuto(_yogaNode);
+  }
+
+  if (auto height = size.height) {
+    if (auto value = std::get_if<utils::Value<int>>(&*height))
+      YGNodeStyleSetHeight(_yogaNode, value->value);
+
+    if (auto ratio = std::get_if<utils::Ratio>(&*height))
+      YGNodeStyleSetHeightPercent(_yogaNode,
+                                  100 * utils::clampRatio(ratio->ratio));
+
+    if (std::holds_alternative<utils::Auto>(*height))
+      YGNodeStyleSetHeightAuto(_yogaNode);
+  }
 
   if (auto mw = size.minWidth)
     YGNodeStyleSetMinWidth(_yogaNode, *mw);
@@ -338,13 +385,6 @@ void Element::updateSize(const style::Size& size) {
 
   if (auto mh = size.maxHeight)
     YGNodeStyleSetMinHeight(_yogaNode, *mh);
-
-  if (auto widthRatio = size.widthRatio)
-    YGNodeStyleSetWidthPercent(_yogaNode, 100 * utils::clampRatio(*widthRatio));
-
-  if (auto heightRatio = size.heightRatio)
-    YGNodeStyleSetWidthPercent(_yogaNode,
-                               100 * utils::clampRatio(*heightRatio));
 
   if (auto aspectRatio = size.aspectRatio)
     YGNodeStyleSetWidthPercent(_yogaNode,

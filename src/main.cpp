@@ -16,7 +16,7 @@ int main() {
   auto root = std::make_shared<ui::element::Root>(windowSize);
 
   auto rootStyle = root->getStyle();
-  rootStyle.flex->alignItems.emplace(ui::style::Alignment::Center);
+  rootStyle.flex->alignItems = ui::style::Alignment::Center;
   root->updateStyle(rootStyle);
 
   std::shared_ptr<ui::element::Element> btn[] = {
@@ -27,8 +27,13 @@ int main() {
   ui::style::Style btnStyle;
 
   auto& size = btnStyle.size.emplace();
-  size.width.emplace(46);
-  size.height.emplace(46);
+  size.width = utils::Value(46);
+  size.height = utils::Value(46);
+
+  btnStyle.positionType = ui::style::PositionType::Absolute;
+  auto& position = btnStyle.position.emplace();
+  position.left = utils::Value(0.0f);
+  position.top = utils::Value(0.0f);
 
   btn[0]->updateStyle(btnStyle);
   // btn[1]->updateStyle(btnStyle);
@@ -39,11 +44,21 @@ int main() {
   ui::element::Element::AppendChild(btn[1], text);
 
   while (!WindowShouldClose()) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+      auto mousePos = GetMousePosition();
+      auto btnStyle = btn[0]->getStyle();
+      btnStyle.position->left = utils::Value(mousePos.x);
+      btnStyle.position->top = utils::Value(mousePos.y);
+      btn[0]->updateStyle(btnStyle);
+    }
+
     BeginDrawing();
-    ClearBackground(BLACK);
-    // todo compute only when dirty
-    root->calculateLayout();
-    root->render();
+    if (root->shouldRecalculateLayout()) {
+      root->calculateLayout();
+
+      ClearBackground(BLACK);
+      root->render();
+    }
     EndDrawing();
   }
 
