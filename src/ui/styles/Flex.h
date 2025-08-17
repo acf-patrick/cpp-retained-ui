@@ -21,13 +21,17 @@ enum class Alignment { FlexStart, Center, FlexEnd, Stretch, Baseline, Auto };
 
 struct FlexBasisPercent {
   float value;
+
+  bool operator<=>(const FlexBasisPercent&) const = default;
 };
 
 struct FlexBasisValue {
   float value;
+
+  bool operator<=>(const FlexBasisValue&) const = default;
 };
 
-struct FlexBasisAuto {};
+struct FlexBasisAuto { bool operator<=>(const FlexBasisAuto&) const = default; };
 
 struct Flex {
   std::optional<FlexDirection> flexDirection;
@@ -44,6 +48,8 @@ struct Flex {
   std::optional<float> gapRatio; // ratio of parent's size for both horizontal and vertial gaps
   std::optional<float> rowGapRatio;
   std::optional<float> columnGapRatio;
+
+  bool operator<=>(const Flex&) const = default;
 };
 
 }  // namespace style

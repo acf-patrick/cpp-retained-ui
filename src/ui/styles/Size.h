@@ -16,6 +16,8 @@ namespace style {
     std::optional<float>
         aspectRatio;  // if only width or height is set, the other dimension is
                       // computed from aspectRatio.
+
+    bool operator<=>(const Size&) const = default;
   };
   
 }  // namespace style

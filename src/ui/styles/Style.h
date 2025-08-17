@@ -1,25 +1,22 @@
 #pragma once
 
+#include "../../utils/types.h"
+#include "./BorderColors.h"
+
+#include <raylib.h>
 #include <optional>
-#include "./Display.h"
-#include "./Flex.h"
-#include "./Overflow.h"
-#include "./PositionType.h"
-#include "./Position.h"
-#include "./Size.h"
-#include "./Spacing.h"
 
 namespace ui {
 namespace style {
 
 struct Style {
-  std::optional<Size> size;
-  std::optional<Spacing> spacing;
-  std::optional<Flex> flex;
-  std::optional<PositionType> positionType;
-  std::optional<Position> position;
-  std::optional<Display> display;
-  std::optional<Overflow> overflow;
+  std::optional<Color> color;  // text color
+  std::optional<Color> backgroundColor;
+  std::optional<Color> borderColor;
+  std::optional<BorderColors> borderColors;
+  std::optional<utils::ValueRatio<float>> borderRadius; // work only with Layout.spacing.border set (even border thickness)
+
+  bool operator<=>(const Style&) const = default;
 };
 
 }  // namespace style

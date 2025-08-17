@@ -12,16 +12,13 @@ Root::Root(const Vector2& windowSize) {
   YGConfigSetUseWebDefaults(_config, true);
   _yogaNode = YGNodeNewWithConfig(_config);
 
-  style::Style rootStyle;
-  auto& size = rootStyle.size.emplace();
+  style::Layout rootLayout;
+  auto& size = rootLayout.size.emplace();
 
   size.width = utils::Value<int>(windowSize.x);
   size.height = utils::Value<int>(windowSize.y);
 
-  auto& flex = rootStyle.flex.emplace();
-  flex.justifyContent.emplace(ui::style::JustifyContent::SpaceBetween);
-
-  updateStyle(rootStyle);
+  updateLayout(rootLayout);
 }
 
 Root::~Root() {
@@ -51,6 +48,7 @@ void Root::calculateLayout() {
       continue;
 
     node->updateAbsolutePosition();
+
     visitedIds.emplace(node->getId());
     for (auto& child : node->getChildren())
       queue.push(child.get());

@@ -6,7 +6,7 @@
 namespace ui {
 namespace element {
 
-Text::Text(const std::string& text) {
+Text::Text(const std::string& text) : Element("Text") {
   setText(text);
 }
 

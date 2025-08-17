@@ -9,14 +9,8 @@ namespace ui {
 namespace element {
 
 class Button : public Element {
-    Color _color;
  public:
-  Button(const Color& color) { _color = color; }
-
-  void render() override {
-    const auto bb = getBoundingRect();
-    DrawRectangle(bb.x, bb.y, bb.width, bb.height, _color);
-  }
+  Button() : Element("Button") {}
 };
 
 }  // namespace element

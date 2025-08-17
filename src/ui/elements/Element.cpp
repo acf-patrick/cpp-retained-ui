@@ -20,7 +20,7 @@ std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,
   return parent;
 }
 
-Element::Element() {
+Element::Element(const std::string& name) : _name(name) {
   _id = nextId++;
   _yogaNode = YGNodeNew();
   _absolutePosition = {.x = 0.0, .y = 0.0};
@@ -31,7 +31,7 @@ Element::~Element() {
 }
 
 bool Element::isNotDisplayed() const {
-  if (auto display = _style.display) {
+  if (auto display = _layout.display) {
     return *display == ui::style::Display::None;
   }
 
@@ -104,6 +104,10 @@ style::Style Element::getStyle() const {
   return _style;
 }
 
+style::Layout Element::getLayout() const {
+  return _layout;
+}
+
 void Element::updateAbsolutePosition() {
   if (auto parent = _parent.lock()) {
     _absolutePosition.x =
@@ -113,55 +117,44 @@ void Element::updateAbsolutePosition() {
   }
 }
 
-bool Element::shouldTriggerDirtyFlag(int updateType) const {
-  return updateType & (UpdateStyleType::Display | UpdateStyleType::Overflow |
-                       UpdateStyleType::Position | UpdateStyleType::Spacing |
-                       UpdateStyleType::Size | UpdateStyleType::Flex |
-                       UpdateStyleType::PositionType);
+void Element::updateStyle(const style::Style& style) {
+  _style = style;
 }
 
-void Element::updateStyle(const style::Style& style) {
-  unsigned int updateType = UpdateStyleType::None;
+void Element::updateLayout(const style::Layout& layout) {
+  if (_layout == layout)
+    return;
 
-  if (auto flex = style.flex) {
+  if (auto flex = layout.flex) {
     updateFlex(*flex);
-    updateType |= UpdateStyleType::Flex;
   }
 
-  if (auto size = style.size) {
+  if (auto size = layout.size) {
     updateSize(*size);
-    updateType |= UpdateStyleType::Size;
   }
 
-  if (auto spacing = style.spacing) {
+  if (auto spacing = layout.spacing) {
     updateSpacing(*spacing);
-    updateType |= UpdateStyleType::Spacing;
   }
 
-  if (auto position = style.position) {
+  if (auto position = layout.position) {
     updatePosition(*position);
-    updateType |= UpdateStyleType::Position;
   }
 
-  if (auto position = style.positionType) {
+  if (auto position = layout.positionType) {
     updatePositionType(*position);
-    updateType |= UpdateStyleType::PositionType;
   }
 
-  if (auto display = style.display) {
+  if (auto display = layout.display) {
     updateDisplay(*display);
-    updateType |= UpdateStyleType::Display;
   }
 
-  if (auto overflow = style.overflow) {
+  if (auto overflow = layout.overflow) {
     updateOverflow(*overflow);
-    updateType |= UpdateStyleType::Overflow;
   }
 
-  if (shouldTriggerDirtyFlag(updateType))
-    markAsDirty();
-
-  _style = style;
+  markAsDirty();
+  _layout = layout;
 }
 
 void Element::updateOverflow(style::Overflow overflow) {
@@ -298,7 +291,9 @@ void Element::updateSpacing(const style::Spacing& spacing) {
                  {YGEdgeLeft, spacing.marginLeft},
                  {YGEdgeRight, spacing.marginRight},
                  {YGEdgeTop, spacing.marginTop},
-                 {YGEdgeBottom, spacing.marginBottom}};
+                 {YGEdgeBottom, spacing.marginBottom},
+                 {YGEdgeVertical, spacing.marginVertical},
+                 {YGEdgeHorizontal, spacing.marginHorizontal}};
 
   for (auto& [edge, optMargin] : margins) {
     if (auto margin = optMargin) {
@@ -321,7 +316,9 @@ void Element::updateSpacing(const style::Spacing& spacing) {
       {YGEdgeLeft, spacing.paddingLeft},
       {YGEdgeRight, spacing.paddingRight},
       {YGEdgeTop, spacing.paddingTop},
-      {YGEdgeBottom, spacing.paddingBottom}};
+      {YGEdgeBottom, spacing.paddingBottom},
+      {YGEdgeHorizontal, spacing.paddingHorizontal},
+      {YGEdgeVertical, spacing.paddingVertical}};
 
   for (auto& [edge, optPadding] : paddings) {
     if (auto padding = optPadding) {
@@ -389,6 +386,115 @@ void Element::updateSize(const style::Size& size) {
   if (auto aspectRatio = size.aspectRatio)
     YGNodeStyleSetWidthPercent(_yogaNode,
                                100 * utils::clampRatio(*aspectRatio));
+}
+
+void Element::drawBackground(const Rectangle& bb) {
+  if (bb.width + bb.height == 0)
+    return;
+
+  if (auto bg = _style.backgroundColor) {
+    if (auto radius = _style.borderRadius) {
+      if (auto ratio = std::get_if<utils::Ratio>(&*radius))
+        DrawRectangleRounded(bb, utils::clampRatio(ratio->ratio), 16, *bg);
+
+      if (auto value = std::get_if<utils::Value<float>>(&*radius))
+        DrawRectangleRounded(
+            bb, utils::clampRatio(value->value / std::min(bb.width, bb.height)),
+            16, *bg);
+    } else {
+      DrawRectangle(bb.x, bb.y, bb.width, bb.height, *bg);
+    }
+  }
+}
+
+void Element::drawBorder(const Rectangle& bb) {
+  if (!_layout.spacing.has_value())
+    return;
+
+  const auto evenBorderThickness = _layout.spacing->border.has_value() &&
+                                   !_layout.spacing->borderBottom.has_value() &&
+                                   !_layout.spacing->borderTop.has_value() &&
+                                   !_layout.spacing->borderLeft.has_value() &&
+                                   !_layout.spacing->borderRight.has_value();
+
+  bool drawRoundedBorders = false;
+
+  if (auto border = _layout.spacing->border; evenBorderThickness) {
+    if (auto radius = _style.borderRadius) {
+      // TODO : make border radius
+      // work on non-even borders
+      if (auto bg = _style.borderColor) {
+        if (auto ratio = std::get_if<utils::Ratio>(&*radius))
+          DrawRectangleRoundedLines(bb, utils::clampRatio(ratio->ratio), 16,
+                                    *border, *bg);
+
+        if (auto value = std::get_if<utils::Value<float>>(&*radius))
+          DrawRectangleRoundedLines(
+              bb,
+              utils::clampRatio(value->value / std::min(bb.width, bb.height)),
+              16, *border, *bg);
+
+        drawRoundedBorders = true;
+      }
+    } else {
+      if (auto bg = _style.borderColor)
+        DrawRectangleLinesEx(bb, *border, *bg);
+    }
+  }
+
+  if (!drawRoundedBorders) {
+    utils::Edges<Color> finalColors = {0};
+    {
+      if (auto bg = _style.borderColor) {
+        finalColors.top = finalColors.left = finalColors.right =
+            finalColors.bottom = *bg;
+      }
+
+      if (auto colors = _style.borderColors) {
+        if (auto top = colors->top)
+          finalColors.top = *top;
+        if (auto bottom = colors->bottom)
+          finalColors.bottom = *bottom;
+        if (auto left = colors->left)
+          finalColors.left = *left;
+        if (auto right = colors->right)
+          finalColors.right = *right;
+      }
+    }
+
+    utils::Edges<float> finalBorders = {0};
+    {
+      auto& spacing = *_layout.spacing;
+      if (auto border = spacing.border) {
+        finalBorders.top = finalBorders.left = finalBorders.right =
+            finalBorders.bottom = *border;
+      }
+
+      if (auto border = spacing.borderLeft)
+        finalBorders.left = *border;
+
+      if (auto border = spacing.borderTop)
+        finalBorders.top = *border;
+
+      if (auto border = spacing.borderBottom)
+        finalBorders.bottom = *border;
+
+      if (auto border = spacing.borderRight)
+        finalBorders.right = *border;
+    }
+
+    utils::drawRectangle(bb, finalBorders.top, finalBorders.bottom,
+                         finalBorders.left, finalBorders.right, finalColors.top,
+                         finalColors.bottom, finalColors.left,
+                         finalColors.right);
+  }
+}
+
+void Element::render() {
+  const auto bb = getBoundingRect();
+
+  drawBackground(bb);
+  drawBorder(bb);
 }
 
 }  // namespace element

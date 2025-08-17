@@ -8,29 +8,21 @@
 #include <optional>
 #include <vector>
 
+#include "../styles/Layout.h"
 #include "../styles/Style.h"
 
 namespace ui {
 namespace element {
 
 class Element {
-  enum UpdateStyleType : unsigned int {
-    None = 0,
-    Display = 1 << 1,
-    Position = 1 << 2,
-    Flex = 1 << 3,
-    Spacing = 1 << 4,
-    Size = 1 << 5,    
-    Overflow = 1 << 6,
-    PositionType = 1 << 7
-  };
-
   static unsigned int nextId;
 
  protected:
+  ui::style::Layout _layout;
   ui::style::Style _style;
   YGNodeRef _yogaNode;
   unsigned int _id;
+  std::string _name;  // name of this element
   Vector2 _absolutePosition;  // relative to root element
   std::weak_ptr<Element> _parent;
   std::vector<std::shared_ptr<Element>> _children;
@@ -46,19 +38,27 @@ class Element {
 
  protected:
   void appendChild(std::shared_ptr<Element> child);
-  bool shouldTriggerDirtyFlag(int updateType) const;
   virtual void onDirtyFlagChanged();
   void markAsDirty();
 
+  protected:
+    void drawBackground(const Rectangle& rect);
+    void drawBorder(const Rectangle& rect);
+
  public:
-  Element();
+  Element(const std::string& name = "Element");
   virtual ~Element();
 
-  virtual void render() = 0;
+  // Layout rendering is performed on root node using BFS.
+  // Custom implementation for inherited classes should only render themselves
+  // not their children.
+  virtual void render();
 
   void removeChild(std::shared_ptr<Element> child);
 
   void removeAllChildren();
+
+  void updateLayout(const ui::style::Layout& layout);
 
   void updateStyle(const ui::style::Style& style);
 
@@ -73,17 +73,23 @@ class Element {
 
   unsigned int getId() const;
 
+  ui::style::Layout getLayout() const;
+
   ui::style::Style getStyle() const;
 
   std::shared_ptr<Element> getParent();
 
   std::vector<std::shared_ptr<Element>> getChildren();
 
-  // might be invalid if called before layout calculation
+  // Get bouding box of current element.
+  // Might be invalid if called before layout calculation
   Rectangle getBoundingRect() const;
 
-  // append child to parent's children and set child's parent. Returns parent
-  // element
+  // Append child to parent's children and set child's parent.
+  // The reason behind this function instead of a method is to keep owned
+  // reference to both parent and child element by deciding to wrap parent with
+  // weak_ptr
+  // @return parent element
   static std::shared_ptr<Element> AppendChild(std::shared_ptr<Element> parent,
                                               std::shared_ptr<Element> child);
 
