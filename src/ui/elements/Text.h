@@ -7,7 +7,9 @@ namespace ui {
 namespace element {
 
 class Text : public Element {
-    std::string _text;
+  std::string _text;
+
+  void onChildAppended(std::shared_ptr<Element>) override;
 
  public:
   Text(const std::string& text);

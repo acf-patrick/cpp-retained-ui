@@ -6,7 +6,7 @@ namespace ui {
 namespace element {
 
 class Button : public Element {
-  void onPreferredThemeChanged() override;
+  void onPreferredThemeChanged(ui::style::Theme theme) override;
   public:
   Button();
 };

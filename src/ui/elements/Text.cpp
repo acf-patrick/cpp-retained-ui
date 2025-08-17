@@ -22,5 +22,9 @@ void Text::render() {
   DrawText(_text.c_str(), bb.x, bb.y, 16, WHITE);
 }
 
+void Text::onChildAppended(std::shared_ptr<Element>) {
+  throw std::logic_error("Text element can only be used as leaf node.");
+}
+
 }  // namespace element
 }  // namespace ui

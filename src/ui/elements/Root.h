@@ -8,11 +8,13 @@ namespace element {
 
 class Root : public Element {
   YGConfigRef _config;
+  bool _ok = false;
   bool _dirty = true; // should calculate layout at least once
 
-  void onDirtyFlagChanged() override;
+void propagatePreferredTheme();
 
-  void onPreferredThemeChanged() override;
+  void onDirtyFlagTriggered() override;
+  void onPreferredThemeChanged(ui::style::Theme theme) override;
 
  public:
   Root(const Vector2& windowSize);
@@ -21,6 +23,9 @@ class Root : public Element {
   void render() override;
 
   bool shouldRecalculateLayout() const;
+
+  // Construct UI tree
+  void finalize();
 
   void calculateLayout();
 };

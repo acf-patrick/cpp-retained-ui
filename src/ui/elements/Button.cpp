@@ -9,8 +9,8 @@ Button::Button() : Element("Button") {
   updateStyle(ui::defaults::buttonStyles(_preferredTheme));
 }
 
-void Button::onPreferredThemeChanged() {
-  updateStyle(ui::defaults::buttonStyles(_preferredTheme));
+void Button::onPreferredThemeChanged(ui::style::Theme theme) {
+  updateStyle(ui::defaults::buttonStyles(theme));
 }
 
 }  // namespace element

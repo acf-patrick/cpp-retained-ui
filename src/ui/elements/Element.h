@@ -5,13 +5,13 @@
 #include <yoga/YGNodeStyle.h>
 
 #include <memory>
-#include <string>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "../styles/Layout.h"
-#include "../styles/Theme.h"
 #include "../styles/Style.h"
+#include "../styles/Theme.h"
 
 namespace ui {
 namespace element {
@@ -25,10 +25,11 @@ class Element {
   YGNodeRef _yogaNode;
   unsigned int _id;
   ui::style::Theme _preferredTheme;
-  std::string _name;  // name of this element
+  std::string _name;          // name of this element
   Vector2 _absolutePosition;  // relative to root element
   std::weak_ptr<Element> _parent;
   std::vector<std::shared_ptr<Element>> _children;
+  std::optional<Color> _cachedColor;  // cached color on this node
 
  protected:
   Element(const std::string& name = "Element");
@@ -44,11 +45,21 @@ class Element {
 
  protected:
   void appendChild(std::shared_ptr<Element> child);
+
+  // used by AppendChild methods
+  void setParent(std::shared_ptr<Element> parent);
+  
+  void setPreferredTheme(ui::style::Theme theme);
+
+  // notify children of color change or cache parent's text color
+  void triggerStyleColorChange(const ui::style::ColorProperty& color);
+
   int getSegmentCount(float radius) const;
   void markAsDirty();
 
-  virtual void onPreferredThemeChanged();
-  virtual void onDirtyFlagChanged();
+  virtual void onPreferredThemeChanged(ui::style::Theme theme);
+  virtual void onChildAppended(std::shared_ptr<Element> child);
+  virtual void onDirtyFlagTriggered();
 
  protected:
   void drawBackground(const Rectangle& rect);
@@ -66,7 +77,8 @@ class Element {
 
   void removeAllChildren();
 
-  // Dirty flag won't be broadcast if this element does not have a parent element
+  // Dirty flag won't be broadcast if this element does not have a parent
+  // element
   void updateLayout(const ui::style::Layout& layout);
 
   void updateStyle(const ui::style::Style& style);
@@ -96,9 +108,6 @@ class Element {
 
   ui::style::Theme getPreferredTheme() const;
 
-  // Should be called on root element to take effect
-  void setPreferredTheme(ui::style::Theme theme);
-
   // Append child to parent's children and set child's parent.
   // The reason behind this function instead of a method is to keep owned
   // reference to both parent and child element by deciding to wrap parent with
@@ -114,6 +123,8 @@ class Element {
     (AppendChild(parent, children), ...);
     return parent;
   }
+
+  friend class Root;
 };
 
 }  // namespace element

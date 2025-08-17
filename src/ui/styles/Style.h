@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../utils/types.h"
+#include "./ColorProperty.h"
 #include "./BorderColors.h"
 
 #include <raylib.h>
@@ -10,7 +11,7 @@ namespace ui {
 namespace style {
 
 struct Style {
-  std::optional<Color> color;  // text color
+  ColorProperty color;
   std::optional<Color> backgroundColor;
   std::optional<Color> borderColor;
   std::optional<BorderColors> borderColors;

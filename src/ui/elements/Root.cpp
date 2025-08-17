@@ -13,7 +13,6 @@ Root::Root(const Vector2& windowSize) {
   YGConfigSetUseWebDefaults(_config, true);
   _yogaNode = YGNodeNewWithConfig(_config);
 
-  updateStyle(ui::defaults::rootStyles(_preferredTheme));
   updateLayout(ui::defaults::rootLayout(windowSize));
 }
 
@@ -25,13 +24,13 @@ bool Root::shouldRecalculateLayout() const {
   return _dirty;
 }
 
-void Root::onDirtyFlagChanged() {
-  _dirty = true;
+void Root::finalize() {
+  updateStyle(ui::defaults::rootStyles(_preferredTheme));
+  propagatePreferredTheme();
+  _ok = true;
 }
 
-void Root::onPreferredThemeChanged() {
-  updateStyle(ui::defaults::rootStyles(_preferredTheme));
-
+void Root::propagatePreferredTheme() {
   std::queue<Element*> queue;
   queue.push(this);
   std::unordered_set<unsigned int> visitedIds;
@@ -40,7 +39,7 @@ void Root::onPreferredThemeChanged() {
     auto node = queue.front();
     queue.pop();
 
-    if (visitedIds.count(node->getId()) > 0)
+    if (visitedIds.contains(node->getId()))
       continue;
 
     if (node != this)
@@ -50,6 +49,15 @@ void Root::onPreferredThemeChanged() {
     for (auto& child : node->getChildren())
       queue.push(child.get());
   }
+}
+
+void Root::onDirtyFlagTriggered() {
+  _dirty = true;
+}
+
+void Root::onPreferredThemeChanged(ui::style::Theme theme) {
+  updateStyle(ui::defaults::rootStyles(theme));
+  propagatePreferredTheme();
 }
 
 void Root::calculateLayout() {
@@ -63,7 +71,7 @@ void Root::calculateLayout() {
     auto node = queue.front();
     queue.pop();
 
-    if (visitedIds.count(node->getId()) > 0)
+    if (visitedIds.contains(node->getId()))
       continue;
 
     node->updateAbsolutePosition();
@@ -77,6 +85,9 @@ void Root::calculateLayout() {
 }
 
 void Root::render() {
+  if (!_ok)
+    throw std::logic_error("Rendering non-finalized root element");
+
   std::queue<Element*> queue;
   queue.push(this);
   std::unordered_set<unsigned int> visitedIds;
@@ -87,7 +98,7 @@ void Root::render() {
     auto node = queue.front();
     queue.pop();
 
-    if (visitedIds.count(node->getId()) > 0 || node->isNotDisplayed())
+    if (visitedIds.contains(node->getId()) || node->isNotDisplayed())
       continue;
 
     if (node != this)

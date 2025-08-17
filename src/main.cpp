@@ -42,6 +42,7 @@ int main() {
   auto text = std::make_shared<ui::element::Text>("This is a button");
   ui::element::Element::AppendChild(button, text);
 
+  root->finalize();
   while (!WindowShouldClose()) {
     BeginDrawing();
     if (root->shouldRecalculateLayout()) {

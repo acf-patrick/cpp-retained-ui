@@ -6,7 +6,9 @@
 #include <yoga/YGNodeLayout.h>
 
 #include <algorithm>
+#include <queue>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace ui {
 namespace element {
@@ -21,6 +23,7 @@ std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,
   parent->appendChild(child);
   child->_parent = parent;
   child->setPreferredTheme(parent->getPreferredTheme());
+  parent->onChildAppended(child);
 
   return parent;
 }
@@ -47,13 +50,16 @@ bool Element::isNotDisplayed() const {
   return false;
 }
 
-void Element::onDirtyFlagChanged() { /* Do nothing */ }
+void Element::onChildAppended(std::shared_ptr<Element>) { /* Do nothing */ }
 
-void Element::onPreferredThemeChanged() { /* Do nothing */ }
+void Element::onDirtyFlagTriggered() { /* Do nothing */ }
+
+void Element::onPreferredThemeChanged(ui::style::Theme theme) { /* Do nothing */
+}
 
 void Element::markAsDirty() {
   for (auto parent = _parent.lock(); parent; parent = parent->getParent())
-    parent->onDirtyFlagChanged();
+    parent->onDirtyFlagTriggered();
 }
 
 void Element::appendChild(std::shared_ptr<Element> child) {
@@ -119,6 +125,39 @@ style::Layout Element::getLayout() const {
   return _layout;
 }
 
+void Element::triggerStyleColorChange(const ui::style::ColorProperty& color) {
+  if (ui::style::helper::isColorInherited(color)) {
+    if (auto parent = getParent())
+      if (auto parentColor = parent->_cachedColor)
+        _cachedColor = *parentColor;
+
+    return;
+  }
+
+  _cachedColor = std::get<Color>(color);
+
+  std::queue<Element*> queue;
+  std::unordered_set<unsigned int> visitedIds;
+  queue.push(this);
+
+  while (!queue.empty()) {
+    auto e = queue.front();
+    queue.pop();
+
+    if (visitedIds.contains(e->_id))
+      continue;
+
+    if (ui::style::helper::isColorInherited(e->_style.color) || e == this) {
+      e->_cachedColor = _cachedColor;
+
+      for (auto child : e->_children)
+        queue.push(child.get());
+    }
+  }
+
+  // TODO
+}
+
 void Element::updateAbsolutePosition() {
   if (auto parent = _parent.lock()) {
     _absolutePosition.x =
@@ -129,6 +168,10 @@ void Element::updateAbsolutePosition() {
 }
 
 void Element::updateStyle(const style::Style& style) {
+  if (_style.color != style.color) {
+    triggerStyleColorChange(style.color);
+  }
+
   _style = style;
 }
 
@@ -542,7 +585,15 @@ void Element::setPreferredTheme(ui::style::Theme theme) {
 
   if (prev != _preferredTheme) {
     updateStyle(ui::defaults::elementStyles(_preferredTheme));
-    onPreferredThemeChanged();
+    onPreferredThemeChanged(_preferredTheme);
+  }
+}
+
+void Element::setParent(std::shared_ptr<Element> parent) {
+  _parent = parent;
+  if (!_cachedColor.has_value()) {
+    _cachedColor = parent->_cachedColor;
+    // TODO
   }
 }
 
