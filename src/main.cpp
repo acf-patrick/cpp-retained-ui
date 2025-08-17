@@ -8,7 +8,10 @@
 #define WINDOW_HEIGHT 480
 
 int main() {
-  InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Reatined UI with raylib");
+// TEST PLAYGROUND
+
+  InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Retained UI with raylib");
+
   SetTargetFPS(60);
 
   auto repositories = repository::InitRepositories();
@@ -31,11 +34,26 @@ int main() {
   button->updateStyle(btnStyle);
 
   auto btnLayout = button->getLayout();
+  // auto& size = btnLayout.size.emplace();
+  // size.width = utils::Value(300);
+  // size.height = utils::Value(200);
   auto& spacing = btnLayout.spacing.emplace();
   spacing.paddingVertical = utils::Value(5);
   spacing.paddingHorizontal = utils::Value(10);
   spacing.border = 3;
+  // spacing.borderRight = 30;
   button->updateLayout(btnLayout);
+
+  /*auto inner = std::make_shared<ui::element::Button>();
+  ui::element::Element::AppendChild(button, inner);
+  auto st = inner->getStyle();
+  st.backgroundColor = GREEN;
+  inner->updateStyle(st);
+  auto l = inner->getLayout();
+  auto& s = l.size.emplace();
+  s.width = utils::Value(48);
+  s.height = utils::Value(48);
+  inner->updateLayout(l);*/
 
   auto text = std::make_shared<ui::element::Text>("Retained UI with raylib");
   ui::element::Element::AppendChild(button, text);

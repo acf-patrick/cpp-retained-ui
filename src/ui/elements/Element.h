@@ -28,6 +28,7 @@ class Element {
   std::vector<std::shared_ptr<Element>> _children;
 
  protected:
+  void updateBoxSizing(ui::style::BoxSizing boxSizing);
   void updateOverflow(ui::style::Overflow overflow);
   void updateDisplay(ui::style::Display display);
   void updatePosition(const ui::style::Position& position);
@@ -38,12 +39,13 @@ class Element {
 
  protected:
   void appendChild(std::shared_ptr<Element> child);
-  virtual void onDirtyFlagChanged();
+  int getSegmentCount(float radius) const;
   void markAsDirty();
+  virtual void onDirtyFlagChanged();
 
-  protected:
-    void drawBackground(const Rectangle& rect);
-    void drawBorder(const Rectangle& rect);
+ protected:
+  void drawBackground(const Rectangle& rect);
+  void drawBorder(const Rectangle& rect);
 
  public:
   Element(const std::string& name = "Element");

@@ -8,6 +8,7 @@
 #include "./PositionType.h"
 #include "./Size.h"
 #include "./Spacing.h"
+#include "./BoxSizing.h"
 
 namespace ui {
 namespace style {
@@ -20,6 +21,7 @@ struct Layout {
   std::optional<Position> position;
   std::optional<Display> display;
   std::optional<Overflow> overflow;
+  std::optional<BoxSizing> boxSizing;
 
   bool operator<=>(const Layout&) const = default;
 };

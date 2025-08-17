@@ -23,6 +23,7 @@ std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,
 Element::Element(const std::string& name) : _name(name) {
   _id = nextId++;
   _yogaNode = YGNodeNew();
+  YGNodeStyleSetBoxSizing(_yogaNode, YGBoxSizingContentBox);
   _absolutePosition = {.x = 0.0, .y = 0.0};
 }
 
@@ -153,8 +154,20 @@ void Element::updateLayout(const style::Layout& layout) {
     updateOverflow(*overflow);
   }
 
+  if (auto boxSizing = layout.boxSizing) {
+    updateBoxSizing(*boxSizing);
+  }
+
   markAsDirty();
   _layout = layout;
+}
+
+void Element::updateBoxSizing(style::BoxSizing boxSizing) {
+  std::unordered_map<style::BoxSizing, YGBoxSizing> sizings = {
+      {style::BoxSizing::BorderBox, YGBoxSizingBorderBox},
+      {style::BoxSizing::ContentBox, YGBoxSizingContentBox}};
+
+  YGNodeStyleSetBoxSizing(_yogaNode, sizings[boxSizing]);
 }
 
 void Element::updateOverflow(style::Overflow overflow) {
@@ -298,14 +311,14 @@ void Element::updateSpacing(const style::Spacing& spacing) {
   for (auto& [edge, optMargin] : margins) {
     if (auto margin = optMargin) {
       if (auto marginValue = std::get_if<utils::Value<int>>(&*margin))
-        YGNodeStyleSetMargin(_yogaNode, YGEdgeAll, marginValue->value);
+        YGNodeStyleSetMargin(_yogaNode, edge, marginValue->value);
 
       if (auto marginRatio = std::get_if<utils::Ratio>(&*margin))
         YGNodeStyleSetMarginPercent(
-            _yogaNode, YGEdgeAll, 100 * utils::clampRatio(marginRatio->ratio));
+            _yogaNode, edge, 100 * utils::clampRatio(marginRatio->ratio));
 
       if (std::get_if<utils::Auto>(&*margin))
-        YGNodeStyleSetMarginAuto(_yogaNode, YGEdgeAll);
+        YGNodeStyleSetMarginAuto(_yogaNode, edge);
     }
   }
 
@@ -323,11 +336,11 @@ void Element::updateSpacing(const style::Spacing& spacing) {
   for (auto& [edge, optPadding] : paddings) {
     if (auto padding = optPadding) {
       if (auto paddingValue = std::get_if<utils::Value<int>>(&*padding))
-        YGNodeStyleSetPadding(_yogaNode, YGEdgeAll, paddingValue->value);
+        YGNodeStyleSetPadding(_yogaNode, edge, paddingValue->value);
 
       if (auto paddingRatio = std::get_if<utils::Ratio>(&*padding))
         YGNodeStyleSetPaddingPercent(
-            _yogaNode, YGEdgeAll, 100 * utils::clampRatio(paddingRatio->ratio));
+            _yogaNode, edge, 100 * utils::clampRatio(paddingRatio->ratio));
     }
   }
 
@@ -342,7 +355,7 @@ void Element::updateSpacing(const style::Spacing& spacing) {
 
   for (auto& [edge, optBorder] : borders) {
     if (auto border = optBorder) {
-      YGNodeStyleSetBorder(_yogaNode, YGEdgeAll, *border);
+      YGNodeStyleSetBorder(_yogaNode, edge, *border);
     }
   }
 }
@@ -394,13 +407,16 @@ void Element::drawBackground(const Rectangle& bb) {
 
   if (auto bg = _style.backgroundColor) {
     if (auto radius = _style.borderRadius) {
-      if (auto ratio = std::get_if<utils::Ratio>(&*radius))
-        DrawRectangleRounded(bb, utils::clampRatio(ratio->ratio), 16, *bg);
+      if (auto ratio = std::get_if<utils::Ratio>(&*radius)) {
+        auto radius = utils::clampRatio(ratio->ratio);
+        DrawRectangleRounded(bb, radius, getSegmentCount(radius), *bg);
+      }
 
-      if (auto value = std::get_if<utils::Value<float>>(&*radius))
-        DrawRectangleRounded(
-            bb, utils::clampRatio(value->value / std::min(bb.width, bb.height)),
-            16, *bg);
+      if (auto value = std::get_if<utils::Value<float>>(&*radius)) {
+        auto radius =
+            utils::clampRatio(value->value / std::min(bb.width, bb.height));
+        DrawRectangleRounded(bb, radius, getSegmentCount(radius), *bg);
+      }
     } else {
       DrawRectangle(bb.x, bb.y, bb.width, bb.height, *bg);
     }
@@ -419,26 +435,27 @@ void Element::drawBorder(const Rectangle& bb) {
 
   bool drawRoundedBorders = false;
 
-  if (auto border = _layout.spacing->border; evenBorderThickness) {
+  if (auto border = _layout.spacing->border;
+      border.has_value() && evenBorderThickness) {
     if (auto radius = _style.borderRadius) {
       // TODO : make border radius
       // work on non-even borders
       if (auto bg = _style.borderColor) {
-        if (auto ratio = std::get_if<utils::Ratio>(&*radius))
-          DrawRectangleRoundedLines(bb, utils::clampRatio(ratio->ratio), 16,
+        if (auto ratio = std::get_if<utils::Ratio>(&*radius)) {
+          auto radius = utils::clampRatio(ratio->ratio);
+          DrawRectangleRoundedLines(bb, radius, getSegmentCount(radius),
                                     *border, *bg);
+        }
 
-        if (auto value = std::get_if<utils::Value<float>>(&*radius))
-          DrawRectangleRoundedLines(
-              bb,
-              utils::clampRatio(value->value / std::min(bb.width, bb.height)),
-              16, *border, *bg);
+        if (auto value = std::get_if<utils::Value<float>>(&*radius)) {
+          auto radius =
+              utils::clampRatio(value->value / std::min(bb.width, bb.height));
+          DrawRectangleRoundedLines(bb, radius, getSegmentCount(radius),
+                                    *border, *bg);
+        }
 
         drawRoundedBorders = true;
       }
-    } else {
-      if (auto bg = _style.borderColor)
-        DrawRectangleLinesEx(bb, *border, *bg);
     }
   }
 
@@ -495,6 +512,10 @@ void Element::render() {
 
   drawBackground(bb);
   drawBorder(bb);
+}
+
+int Element::getSegmentCount(float radius) const {
+  return int(radius * 4) < 8 ? 8 : int(radius * 2.5);
 }
 
 }  // namespace element
