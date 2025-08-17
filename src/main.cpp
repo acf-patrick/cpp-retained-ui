@@ -8,7 +8,7 @@
 #define WINDOW_HEIGHT 480
 
 int main() {
-// TEST PLAYGROUND
+  // TEST PLAYGROUND
 
   InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Retained UI with raylib");
 
@@ -18,44 +18,28 @@ int main() {
   Vector2 windowSize = {.x = WINDOW_WIDTH, .y = WINDOW_HEIGHT};
   auto root = std::make_shared<ui::element::Root>(windowSize);
 
-  auto rootLayout = root->getLayout();
-  auto& flex = rootLayout.flex.emplace();
-  flex.justifyContent = ui::style::JustifyContent::Center;
-  flex.alignItems = ui::style::Alignment::Center;
-  root->updateLayout(rootLayout);
+  auto view = std::make_shared<ui::element::View>();
+  ui::element::Element::AppendChild(root, view);
+
+  {
+    auto layout = view->getLayout();
+
+    auto& flex = layout.flex.emplace();
+    flex.justifyContent = ui::style::JustifyContent::Center;
+    flex.alignItems = ui::style::Alignment::Center;
+    flex.flex = 1.0;
+
+    view->updateLayout(layout);
+
+    auto style = view->getStyle();
+    style.backgroundColor = SKYBLUE;
+    view->updateStyle(style);
+  }
 
   auto button = std::make_shared<ui::element::Button>();
-  ui::element::Element::AppendChild(root, button);
+  ui::element::Element::AppendChild(view, button);
 
-  auto btnStyle = button->getStyle();
-  btnStyle.backgroundColor.emplace(DARKGRAY);
-  btnStyle.borderColor.emplace(BLUE);
-  btnStyle.borderRadius = utils::Value<float>(4);
-  button->updateStyle(btnStyle);
-
-  auto btnLayout = button->getLayout();
-  // auto& size = btnLayout.size.emplace();
-  // size.width = utils::Value(300);
-  // size.height = utils::Value(200);
-  auto& spacing = btnLayout.spacing.emplace();
-  spacing.paddingVertical = utils::Value(5);
-  spacing.paddingHorizontal = utils::Value(10);
-  spacing.border = 3;
-  // spacing.borderRight = 30;
-  button->updateLayout(btnLayout);
-
-  /*auto inner = std::make_shared<ui::element::Button>();
-  ui::element::Element::AppendChild(button, inner);
-  auto st = inner->getStyle();
-  st.backgroundColor = GREEN;
-  inner->updateStyle(st);
-  auto l = inner->getLayout();
-  auto& s = l.size.emplace();
-  s.width = utils::Value(48);
-  s.height = utils::Value(48);
-  inner->updateLayout(l);*/
-
-  auto text = std::make_shared<ui::element::Text>("Retained UI with raylib");
+  auto text = std::make_shared<ui::element::Text>("This is a button");
   ui::element::Element::AppendChild(button, text);
 
   while (!WindowShouldClose()) {
@@ -64,7 +48,6 @@ int main() {
       root->calculateLayout();
     }
 
-    ClearBackground(BLACK);
     root->render();
     EndDrawing();
   }

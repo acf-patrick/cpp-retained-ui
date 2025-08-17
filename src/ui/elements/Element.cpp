@@ -1,6 +1,7 @@
 #include "./Element.h"
 
 #include "../../utils/functions.h"
+#include "../defaults.h"
 
 #include <yoga/YGNodeLayout.h>
 
@@ -14,17 +15,24 @@ unsigned int Element::nextId = 0;
 
 std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,
                                               std::shared_ptr<Element> child) {
+  if (child == nullptr || parent == nullptr)
+    return parent;
+
   parent->appendChild(child);
   child->_parent = parent;
+  child->setPreferredTheme(parent->getPreferredTheme());
 
   return parent;
 }
 
-Element::Element(const std::string& name) : _name(name) {
+Element::Element(const std::string& name)
+    : _name(name), _preferredTheme(ui::style::Theme::Dark) {
   _id = nextId++;
-  _yogaNode = YGNodeNew();
-  YGNodeStyleSetBoxSizing(_yogaNode, YGBoxSizingContentBox);
   _absolutePosition = {.x = 0.0, .y = 0.0};
+
+  _yogaNode = YGNodeNew();
+  updateStyle(ui::defaults::elementStyles(_preferredTheme));
+  updateLayout(ui::defaults::elementLayout());
 }
 
 Element::~Element() {
@@ -40,6 +48,8 @@ bool Element::isNotDisplayed() const {
 }
 
 void Element::onDirtyFlagChanged() { /* Do nothing */ }
+
+void Element::onPreferredThemeChanged() { /* Do nothing */ }
 
 void Element::markAsDirty() {
   for (auto parent = _parent.lock(); parent; parent = parent->getParent())
@@ -257,6 +267,9 @@ void Element::updateFlex(const style::Flex& flex) {
   if (auto alignSelf = flex.alignSelf)
     YGNodeStyleSetAlignSelf(_yogaNode, alignments[*alignSelf]);
 
+  if (auto optFlex = flex.flex)
+    YGNodeStyleSetFlex(_yogaNode, *optFlex);
+
   if (auto flexGrow = flex.flexGrow)
     YGNodeStyleSetFlexGrow(_yogaNode, *flexGrow);
 
@@ -366,7 +379,8 @@ void Element::updateSize(const style::Size& size) {
       YGNodeStyleSetWidth(_yogaNode, value->value);
 
     if (auto ratio = std::get_if<utils::Ratio>(&*width))
-      YGNodeStyleSetWidthPercent(_yogaNode, ratio->ratio);
+      YGNodeStyleSetWidthPercent(_yogaNode,
+                                 100 * utils::clampRatio(ratio->ratio));
 
     if (std::holds_alternative<utils::Auto>(*width))
       YGNodeStyleSetWidthAuto(_yogaNode);
@@ -516,6 +530,20 @@ void Element::render() {
 
 int Element::getSegmentCount(float radius) const {
   return int(radius * 4) < 8 ? 8 : int(radius * 2.5);
+}
+
+ui::style::Theme Element::getPreferredTheme() const {
+  return _preferredTheme;
+}
+
+void Element::setPreferredTheme(ui::style::Theme theme) {
+  const auto prev = _preferredTheme;
+  _preferredTheme = theme;
+
+  if (prev != _preferredTheme) {
+    updateStyle(ui::defaults::elementStyles(_preferredTheme));
+    onPreferredThemeChanged();
+  }
 }
 
 }  // namespace element

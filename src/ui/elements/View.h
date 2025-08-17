@@ -1,14 +1,14 @@
 #pragma once
 
 #include "./Element.h"
+#include <iostream>
 
 namespace ui {
 namespace element {
 
-class Button : public Element {
-  void onPreferredThemeChanged() override;
-  public:
-  Button();
+class View : public Element {
+ public:
+  View() : Element("View") {}
 };
 
 }  // namespace element

@@ -38,6 +38,7 @@ struct Flex {
   std::optional<JustifyContent> justifyContent;
   std::optional<Alignment> alignItems;
   std::optional<Alignment> alignSelf;
+  std::optional<float> flex;
   std::optional<float> flexGrow;
   std::optional<float> flexShrink;
   std::optional<std::variant<FlexBasisAuto, FlexBasisPercent, FlexBasisValue>>

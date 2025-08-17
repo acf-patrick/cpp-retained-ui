@@ -19,7 +19,6 @@ void Text::setText(const std::string& text) {
 
 void Text::render() {
   auto bb = getBoundingRect();
-  DrawRectangle(bb.x, bb.y, bb.width, bb.height, WHITE); // test render background
   DrawText(_text.c_str(), bb.x, bb.y, 16, WHITE);
 }
 

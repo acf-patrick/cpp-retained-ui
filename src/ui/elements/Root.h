@@ -12,6 +12,8 @@ class Root : public Element {
 
   void onDirtyFlagChanged() override;
 
+  void onPreferredThemeChanged() override;
+
  public:
   Root(const Vector2& windowSize);
   ~Root();

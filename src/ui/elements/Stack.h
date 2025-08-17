@@ -5,10 +5,9 @@
 namespace ui {
 namespace element {
 
-class Button : public Element {
-  void onPreferredThemeChanged() override;
-  public:
-  Button();
+class Stack : public Element {
+ public:
+  Stack();
 };
 
 }  // namespace element

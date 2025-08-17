@@ -1,4 +1,5 @@
 #include "./Root.h"
+#include "../defaults.h"
 
 #include <queue>
 #include <unordered_set>
@@ -12,13 +13,8 @@ Root::Root(const Vector2& windowSize) {
   YGConfigSetUseWebDefaults(_config, true);
   _yogaNode = YGNodeNewWithConfig(_config);
 
-  style::Layout rootLayout;
-  auto& size = rootLayout.size.emplace();
-
-  size.width = utils::Value<int>(windowSize.x);
-  size.height = utils::Value<int>(windowSize.y);
-
-  updateLayout(rootLayout);
+  updateStyle(ui::defaults::rootStyles(_preferredTheme));
+  updateLayout(ui::defaults::rootLayout(windowSize));
 }
 
 Root::~Root() {
@@ -31,6 +27,29 @@ bool Root::shouldRecalculateLayout() const {
 
 void Root::onDirtyFlagChanged() {
   _dirty = true;
+}
+
+void Root::onPreferredThemeChanged() {
+  updateStyle(ui::defaults::rootStyles(_preferredTheme));
+
+  std::queue<Element*> queue;
+  queue.push(this);
+  std::unordered_set<unsigned int> visitedIds;
+
+  while (!queue.empty()) {
+    auto node = queue.front();
+    queue.pop();
+
+    if (visitedIds.count(node->getId()) > 0)
+      continue;
+
+    if (node != this)
+      node->setPreferredTheme(_preferredTheme);
+
+    visitedIds.emplace(node->getId());
+    for (auto& child : node->getChildren())
+      queue.push(child.get());
+  }
 }
 
 void Root::calculateLayout() {
@@ -61,6 +80,8 @@ void Root::render() {
   std::queue<Element*> queue;
   queue.push(this);
   std::unordered_set<unsigned int> visitedIds;
+
+  ClearBackground(_style.backgroundColor.value_or(BLACK));
 
   while (!queue.empty()) {
     auto node = queue.front();

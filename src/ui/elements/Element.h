@@ -5,10 +5,12 @@
 #include <yoga/YGNodeStyle.h>
 
 #include <memory>
+#include <string>
 #include <optional>
 #include <vector>
 
 #include "../styles/Layout.h"
+#include "../styles/Theme.h"
 #include "../styles/Style.h"
 
 namespace ui {
@@ -22,12 +24,15 @@ class Element {
   ui::style::Style _style;
   YGNodeRef _yogaNode;
   unsigned int _id;
+  ui::style::Theme _preferredTheme;
   std::string _name;  // name of this element
   Vector2 _absolutePosition;  // relative to root element
   std::weak_ptr<Element> _parent;
   std::vector<std::shared_ptr<Element>> _children;
 
  protected:
+  Element(const std::string& name = "Element");
+
   void updateBoxSizing(ui::style::BoxSizing boxSizing);
   void updateOverflow(ui::style::Overflow overflow);
   void updateDisplay(ui::style::Display display);
@@ -41,6 +46,8 @@ class Element {
   void appendChild(std::shared_ptr<Element> child);
   int getSegmentCount(float radius) const;
   void markAsDirty();
+
+  virtual void onPreferredThemeChanged();
   virtual void onDirtyFlagChanged();
 
  protected:
@@ -48,7 +55,6 @@ class Element {
   void drawBorder(const Rectangle& rect);
 
  public:
-  Element(const std::string& name = "Element");
   virtual ~Element();
 
   // Layout rendering is performed on root node using BFS.
@@ -60,6 +66,7 @@ class Element {
 
   void removeAllChildren();
 
+  // Dirty flag won't be broadcast if this element does not have a parent element
   void updateLayout(const ui::style::Layout& layout);
 
   void updateStyle(const ui::style::Style& style);
@@ -86,6 +93,11 @@ class Element {
   // Get bouding box of current element.
   // Might be invalid if called before layout calculation
   Rectangle getBoundingRect() const;
+
+  ui::style::Theme getPreferredTheme() const;
+
+  // Should be called on root element to take effect
+  void setPreferredTheme(ui::style::Theme theme);
 
   // Append child to parent's children and set child's parent.
   // The reason behind this function instead of a method is to keep owned

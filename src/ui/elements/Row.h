@@ -5,10 +5,9 @@
 namespace ui {
 namespace element {
 
-class Button : public Element {
-  void onPreferredThemeChanged() override;
-  public:
-  Button();
+class Row : public Element {
+ public:
+  Row() : Element("Row") {}
 };
 
 }  // namespace element
