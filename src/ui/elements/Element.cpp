@@ -15,39 +15,26 @@ namespace element {
 
 unsigned int Element::nextId = 0;
 
-std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,
-                                              std::shared_ptr<Element> child) {
-  if (child == nullptr || parent == nullptr)
-    return parent;
-
-  parent->appendChild(child);
-  child->_parent = parent;
-  child->setPreferredTheme(parent->getPreferredTheme());
-  parent->onChildAppended(child);
-
-  return parent;
-}
-
-Element::Element(const std::string& name)
+Element::Element(const std::string &name)
     : _name(name), _preferredTheme(ui::style::Theme::Dark) {
-  _id = nextId++;
-  _absolutePosition = {.x = 0.0, .y = 0.0};
+    _id = nextId++;
+    _absolutePosition = {.x = 0.0, .y = 0.0};
 
-  _yogaNode = YGNodeNew();
-  updateStyle(ui::defaults::elementStyles(_preferredTheme));
-  updateLayout(ui::defaults::elementLayout());
+    _yogaNode = YGNodeNew();
+    updateStyle(ui::defaults::elementStyles(_preferredTheme));
+    updateLayout(ui::defaults::elementLayout());
 }
 
 Element::~Element() {
-  YGNodeFree(_yogaNode);
+    YGNodeFree(_yogaNode);
 }
 
 bool Element::isNotDisplayed() const {
-  if (auto display = _layout.display) {
-    return *display == ui::style::Display::None;
-  }
+    if (auto display = _layout.display) {
+        return *display == ui::style::Display::None;
+    }
 
-  return false;
+    return false;
 }
 
 void Element::onChildAppended(std::shared_ptr<Element>) { /* Do nothing */ }
@@ -58,544 +45,554 @@ void Element::onPreferredThemeChanged(ui::style::Theme theme) { /* Do nothing */
 }
 
 void Element::markAsDirty() {
-  for (auto parent = _parent.lock(); parent; parent = parent->getParent())
-    parent->onDirtyFlagTriggered();
+    for (auto parent = _parent.lock(); parent; parent = parent->getParent())
+        parent->onDirtyFlagTriggered();
 }
 
 void Element::appendChild(std::shared_ptr<Element> child) {
-  if (!child)
-    return;
+    if (!child)
+        return;
 
-  _children.push_back(child);
-  YGNodeInsertChild(_yogaNode, child->_yogaNode, _children.size() - 1);
+    _children.push_back(child);
+    YGNodeInsertChild(_yogaNode, child->_yogaNode, _children.size() - 1);
+    onChildAppended(child);
 }
 
 void Element::removeChild(std::shared_ptr<Element> child) {
-  auto it = std::find(_children.begin(), _children.end(), child);
-  if (it != _children.end()) {
-    YGNodeRemoveChild(_yogaNode, child->_yogaNode);
-    _children.erase(it);
-  }
+    auto it = std::find(_children.begin(), _children.end(), child);
+    if (it != _children.end()) {
+        YGNodeRemoveChild(_yogaNode, child->_yogaNode);
+        _children.erase(it);
+    }
 }
 
 void Element::removeAllChildren() {
-  YGNodeRemoveAllChildren(_yogaNode);
-  _children.clear();
+    YGNodeRemoveAllChildren(_yogaNode);
+    _children.clear();
 }
 
 Rectangle Element::getBoundingRect() const {
-  Rectangle bb = {.x = _absolutePosition.x,
-                  .y = _absolutePosition.y,
-                  .width = YGNodeLayoutGetWidth(_yogaNode),
-                  .height = YGNodeLayoutGetHeight(_yogaNode)};
-  return bb;
+    Rectangle bb = {.x = _absolutePosition.x,
+                    .y = _absolutePosition.y,
+                    .width = YGNodeLayoutGetWidth(_yogaNode),
+                    .height = YGNodeLayoutGetHeight(_yogaNode)};
+    return bb;
 }
 
 std::shared_ptr<Element> Element::getParent() {
-  if (auto parent = _parent.lock())
-    return parent;
-  return nullptr;
+    if (auto parent = _parent.lock())
+        return parent;
+    return nullptr;
 }
 
 std::vector<std::shared_ptr<Element>> Element::getChildren() {
-  return _children;
+    return _children;
 }
 
 std::vector<std::shared_ptr<Element>> Element::getSiblings() {
-  std::vector<std::shared_ptr<Element>> siblings;
+    std::vector<std::shared_ptr<Element>> siblings;
 
-  if (auto parent = _parent.lock()) {
-    for (auto sibling : parent->_children)
-      if (sibling->_id != _id)
-        siblings.emplace_back(sibling);
-  }
+    if (auto parent = _parent.lock()) {
+        for (auto sibling : parent->_children)
+            if (sibling->_id != _id)
+                siblings.emplace_back(sibling);
+    }
 
-  return siblings;
+    return siblings;
 }
 
 unsigned int Element::getId() const {
-  return _id;
+    return _id;
 }
 
 style::Style Element::getStyle() const {
-  return _style;
+    return _style;
 }
 
 style::Layout Element::getLayout() const {
-  return _layout;
+    return _layout;
 }
 
-void Element::triggerStyleColorChange(const ui::style::ColorProperty& color) {
-  if (ui::style::helper::isColorInherited(color)) {
-    if (auto parent = getParent())
-      if (auto parentColor = parent->_cachedColor)
-        _cachedColor = *parentColor;
+void Element::triggerStyleColorChange(const ui::style::ColorProperty &color) {
+    if (ui::style::helper::isColorInherited(color)) {
+        if (auto parent = getParent())
+            if (auto parentColor = parent->_cachedColor)
+                _cachedColor = *parentColor;
 
-    return;
-  }
-
-  _cachedColor = std::get<Color>(color);
-
-  std::queue<Element*> queue;
-  std::unordered_set<unsigned int> visitedIds;
-  queue.push(this);
-
-  while (!queue.empty()) {
-    auto e = queue.front();
-    queue.pop();
-
-    if (visitedIds.contains(e->_id))
-      continue;
-
-    if (ui::style::helper::isColorInherited(e->_style.color) || e == this) {
-      e->_cachedColor = _cachedColor;
-
-      for (auto child : e->_children)
-        queue.push(child.get());
+        return;
     }
-  }
 
-  // TODO
+    _cachedColor = std::get<Color>(color);
+
+    std::queue<Element *> queue;
+    std::unordered_set<unsigned int> visitedIds;
+    queue.push(this);
+
+    while (!queue.empty()) {
+        auto e = queue.front();
+        queue.pop();
+
+        if (visitedIds.contains(e->_id))
+            continue;
+
+        if (ui::style::helper::isColorInherited(e->_style.color) || e == this) {
+            e->_cachedColor = _cachedColor;
+
+            for (auto child : e->_children)
+                queue.push(child.get());
+        }
+    }
 }
 
 void Element::updateAbsolutePosition() {
-  if (auto parent = _parent.lock()) {
-    _absolutePosition.x =
-        YGNodeLayoutGetLeft(_yogaNode) + parent->_absolutePosition.x;
-    _absolutePosition.y =
-        YGNodeLayoutGetTop(_yogaNode) + parent->_absolutePosition.y;
-  }
+    if (auto parent = _parent.lock()) {
+        _absolutePosition.x =
+            YGNodeLayoutGetLeft(_yogaNode) + parent->_absolutePosition.x;
+        _absolutePosition.y =
+            YGNodeLayoutGetTop(_yogaNode) + parent->_absolutePosition.y;
+    }
 }
 
-void Element::updateStyle(const style::Style& style) {
-  if (_style.color != style.color) {
-    triggerStyleColorChange(style.color);
-  }
+void Element::updateStyle(const style::Style &style) {
+    if (_style.color != style.color) {
+        triggerStyleColorChange(style.color);
+    }
 
-  _style = style;
+    _style = style;
 }
 
-void Element::updateLayout(const style::Layout& layout) {
-  if (_layout == layout)
-    return;
+void Element::updateLayout(const style::Layout &layout) {
+    if (_layout == layout)
+        return;
 
-  if (auto flex = layout.flex) {
-    updateFlex(*flex);
-  }
+    if (auto flex = layout.flex) {
+        updateFlex(*flex);
+    }
 
-  if (auto size = layout.size) {
-    updateSize(*size);
-  }
+    if (auto size = layout.size) {
+        updateSize(*size);
+    }
 
-  if (auto spacing = layout.spacing) {
-    updateSpacing(*spacing);
-  }
+    if (auto spacing = layout.spacing) {
+        updateSpacing(*spacing);
+    }
 
-  if (auto position = layout.position) {
-    updatePosition(*position);
-  }
+    if (auto position = layout.position) {
+        updatePosition(*position);
+    }
 
-  if (auto position = layout.positionType) {
-    updatePositionType(*position);
-  }
+    if (auto position = layout.positionType) {
+        updatePositionType(*position);
+    }
 
-  if (auto display = layout.display) {
-    updateDisplay(*display);
-  }
+    if (auto display = layout.display) {
+        updateDisplay(*display);
+    }
 
-  if (auto overflow = layout.overflow) {
-    updateOverflow(*overflow);
-  }
+    if (auto overflow = layout.overflow) {
+        updateOverflow(*overflow);
+    }
 
-  if (auto boxSizing = layout.boxSizing) {
-    updateBoxSizing(*boxSizing);
-  }
+    if (auto boxSizing = layout.boxSizing) {
+        updateBoxSizing(*boxSizing);
+    }
 
-  markAsDirty();
-  _layout = layout;
+    markAsDirty();
+    _layout = layout;
 }
 
 void Element::updateBoxSizing(style::BoxSizing boxSizing) {
-  std::unordered_map<style::BoxSizing, YGBoxSizing> sizings = {
-      {style::BoxSizing::BorderBox, YGBoxSizingBorderBox},
-      {style::BoxSizing::ContentBox, YGBoxSizingContentBox}};
+    std::unordered_map<style::BoxSizing, YGBoxSizing> sizings = {
+        {style::BoxSizing::BorderBox, YGBoxSizingBorderBox},
+        {style::BoxSizing::ContentBox, YGBoxSizingContentBox}};
 
-  YGNodeStyleSetBoxSizing(_yogaNode, sizings[boxSizing]);
+    YGNodeStyleSetBoxSizing(_yogaNode, sizings[boxSizing]);
 }
 
 void Element::updateOverflow(style::Overflow overflow) {
-  std::unordered_map<style::Overflow, YGOverflow> overflows = {
-      {style::Overflow::Hidden, YGOverflowHidden},
-      {style::Overflow::Scroll, YGOverflowScroll},
-      {style::Overflow::Visible, YGOverflowVisible}};
+    std::unordered_map<style::Overflow, YGOverflow> overflows = {
+        {style::Overflow::Hidden, YGOverflowHidden},
+        {style::Overflow::Scroll, YGOverflowScroll},
+        {style::Overflow::Visible, YGOverflowVisible}};
 
-  YGNodeStyleSetOverflow(_yogaNode, overflows[overflow]);
+    YGNodeStyleSetOverflow(_yogaNode, overflows[overflow]);
 }
 
 void Element::updateDisplay(style::Display display) {
-  std::unordered_map<style::Display, YGDisplay> displays = {
-      {style::Display::Contents, YGDisplayContents},
-      {style::Display::None, YGDisplayNone},
-      {style::Display::Flex, YGDisplayFlex}};
+    std::unordered_map<style::Display, YGDisplay> displays = {
+        {style::Display::Contents, YGDisplayContents},
+        {style::Display::None, YGDisplayNone},
+        {style::Display::Flex, YGDisplayFlex}};
 
-  YGNodeStyleSetDisplay(_yogaNode, displays[display]);
+    YGNodeStyleSetDisplay(_yogaNode, displays[display]);
 }
 
-void Element::updatePosition(const style::Position& position) {
-  std::unordered_map<YGEdge, std::optional<utils::ValueRatioAuto<float>>>
-      positions = {{YGEdgeLeft, position.left},
-                   {YGEdgeRight, position.right},
-                   {YGEdgeTop, position.top},
-                   {YGEdgeBottom, position.bottom}};
+void Element::updatePosition(const style::Position &position) {
+    std::unordered_map<YGEdge, std::optional<utils::ValueRatioAuto<float>>>
+        positions = {{YGEdgeLeft, position.left},
+                     {YGEdgeRight, position.right},
+                     {YGEdgeTop, position.top},
+                     {YGEdgeBottom, position.bottom}};
 
-  for (auto& [edge, optPosition] : positions) {
-    if (auto position = optPosition) {
-      if (auto value = std::get_if<utils::Value<float>>(&*position))
-        YGNodeStyleSetPosition(_yogaNode, edge, value->value);
+    for (auto &[edge, optPosition] : positions) {
+        if (auto position = optPosition) {
+            if (auto value = std::get_if<utils::Value<float>>(&*position))
+                YGNodeStyleSetPosition(_yogaNode, edge, value->value);
 
-      if (auto ratio = std::get_if<utils::Ratio>(&*position))
-        YGNodeStyleSetPosition(_yogaNode, edge, ratio->ratio);
+            if (auto ratio = std::get_if<utils::Ratio>(&*position))
+                YGNodeStyleSetPosition(_yogaNode, edge, ratio->ratio);
 
-      if (std::holds_alternative<utils::Auto>(*position))
-        YGNodeStyleSetPositionAuto(_yogaNode, edge);
+            if (std::holds_alternative<utils::Auto>(*position))
+                YGNodeStyleSetPositionAuto(_yogaNode, edge);
+        }
     }
-  }
 }
 
 void Element::updatePositionType(style::PositionType position) {
-  std::unordered_map<style::PositionType, YGPositionType> positions = {
-      {style::PositionType::Absolute, YGPositionTypeAbsolute},
-      {style::PositionType::Relative, YGPositionTypeRelative},
-      {style::PositionType::Static, YGPositionTypeStatic},
-  };
+    std::unordered_map<style::PositionType, YGPositionType> positions = {
+        {style::PositionType::Absolute, YGPositionTypeAbsolute},
+        {style::PositionType::Relative, YGPositionTypeRelative},
+        {style::PositionType::Static, YGPositionTypeStatic},
+    };
 
-  YGNodeStyleSetPositionType(_yogaNode, positions[position]);
+    YGNodeStyleSetPositionType(_yogaNode, positions[position]);
 }
 
-void Element::updateFlex(const style::Flex& flex) {
-  std::unordered_map<style::FlexDirection, YGFlexDirection> flexDirections = {
-      {style::FlexDirection::Column, YGFlexDirectionColumn},
-      {style::FlexDirection::ColumnReverse, YGFlexDirectionColumnReverse},
-      {style::FlexDirection::Row, YGFlexDirectionRow},
-      {style::FlexDirection::RowReverse, YGFlexDirectionRowReverse},
-  };
+void Element::updateFlex(const style::Flex &flex) {
+    std::unordered_map<style::FlexDirection, YGFlexDirection> flexDirections = {
+        {style::FlexDirection::Column, YGFlexDirectionColumn},
+        {style::FlexDirection::ColumnReverse, YGFlexDirectionColumnReverse},
+        {style::FlexDirection::Row, YGFlexDirectionRow},
+        {style::FlexDirection::RowReverse, YGFlexDirectionRowReverse},
+    };
 
-  std::unordered_map<style::JustifyContent, YGJustify> justifyContents = {
-      {style::JustifyContent::FlexStart, YGJustifyFlexStart},
-      {style::JustifyContent::Center, YGJustifyCenter},
-      {style::JustifyContent::FlexEnd, YGJustifyFlexEnd},
-      {style::JustifyContent::SpaceBetween, YGJustifySpaceBetween},
-      {style::JustifyContent::SpaceAround, YGJustifySpaceAround},
-      {style::JustifyContent::SpaceEvenly, YGJustifySpaceEvenly},
-  };
+    std::unordered_map<style::JustifyContent, YGJustify> justifyContents = {
+        {style::JustifyContent::FlexStart, YGJustifyFlexStart},
+        {style::JustifyContent::Center, YGJustifyCenter},
+        {style::JustifyContent::FlexEnd, YGJustifyFlexEnd},
+        {style::JustifyContent::SpaceBetween, YGJustifySpaceBetween},
+        {style::JustifyContent::SpaceAround, YGJustifySpaceAround},
+        {style::JustifyContent::SpaceEvenly, YGJustifySpaceEvenly},
+    };
 
-  std::unordered_map<style::Alignment, YGAlign> alignments = {
-      {style::Alignment::FlexStart, YGAlignFlexStart},
-      {style::Alignment::Center, YGAlignCenter},
-      {style::Alignment::FlexEnd, YGAlignFlexEnd},
-      {style::Alignment::Stretch, YGAlignStretch},
-      {style::Alignment::Baseline, YGAlignBaseline},
-      {style::Alignment::Auto, YGAlignAuto},
-  };
+    std::unordered_map<style::Alignment, YGAlign> alignments = {
+        {style::Alignment::FlexStart, YGAlignFlexStart},
+        {style::Alignment::Center, YGAlignCenter},
+        {style::Alignment::FlexEnd, YGAlignFlexEnd},
+        {style::Alignment::Stretch, YGAlignStretch},
+        {style::Alignment::Baseline, YGAlignBaseline},
+        {style::Alignment::Auto, YGAlignAuto},
+    };
 
-  if (auto flexDirection = flex.flexDirection)
-    YGNodeStyleSetFlexDirection(_yogaNode, flexDirections[*flexDirection]);
+    if (auto flexDirection = flex.flexDirection)
+        YGNodeStyleSetFlexDirection(_yogaNode, flexDirections[*flexDirection]);
 
-  if (auto justifyContent = flex.justifyContent)
-    YGNodeStyleSetJustifyContent(_yogaNode, justifyContents[*justifyContent]);
+    if (auto justifyContent = flex.justifyContent)
+        YGNodeStyleSetJustifyContent(_yogaNode, justifyContents[*justifyContent]);
 
-  if (auto alignItems = flex.alignItems)
-    YGNodeStyleSetAlignItems(_yogaNode, alignments[*alignItems]);
+    if (auto alignItems = flex.alignItems)
+        YGNodeStyleSetAlignItems(_yogaNode, alignments[*alignItems]);
 
-  if (auto alignSelf = flex.alignSelf)
-    YGNodeStyleSetAlignSelf(_yogaNode, alignments[*alignSelf]);
+    if (auto alignSelf = flex.alignSelf)
+        YGNodeStyleSetAlignSelf(_yogaNode, alignments[*alignSelf]);
 
-  if (auto optFlex = flex.flex)
-    YGNodeStyleSetFlex(_yogaNode, *optFlex);
+    if (auto optFlex = flex.flex)
+        YGNodeStyleSetFlex(_yogaNode, *optFlex);
 
-  if (auto flexGrow = flex.flexGrow)
-    YGNodeStyleSetFlexGrow(_yogaNode, *flexGrow);
+    if (auto flexGrow = flex.flexGrow)
+        YGNodeStyleSetFlexGrow(_yogaNode, *flexGrow);
 
-  if (auto flexShrink = flex.flexShrink)
-    YGNodeStyleSetFlexShrink(_yogaNode, *flexShrink);
+    if (auto flexShrink = flex.flexShrink)
+        YGNodeStyleSetFlexShrink(_yogaNode, *flexShrink);
 
-  if (auto flexBasis = flex.flexBasis) {
-    if (std::get_if<style::FlexBasisAuto>(&(*flexBasis)))
-      YGNodeStyleSetFlexBasisAuto(_yogaNode);
+    if (auto flexBasis = flex.flexBasis) {
+        if (std::get_if<style::FlexBasisAuto>(&(*flexBasis)))
+            YGNodeStyleSetFlexBasisAuto(_yogaNode);
 
-    if (auto percent = std::get_if<style::FlexBasisPercent>(&(*flexBasis)))
-      YGNodeStyleSetFlexBasisPercent(_yogaNode, percent->value);
+        if (auto percent = std::get_if<style::FlexBasisPercent>(&(*flexBasis)))
+            YGNodeStyleSetFlexBasisPercent(_yogaNode, percent->value);
 
-    if (auto value = std::get_if<style::FlexBasisValue>(&(*flexBasis)))
-      YGNodeStyleSetFlexBasis(_yogaNode, value->value);
-  }
-
-  if (auto gap = flex.gap)
-    YGNodeStyleSetGap(_yogaNode, YGGutterAll, *gap);
-
-  if (auto rowGap = flex.rowGap)
-    YGNodeStyleSetGap(_yogaNode, YGGutterRow, *rowGap);
-
-  if (auto columnGap = flex.columnGap)
-    YGNodeStyleSetGap(_yogaNode, YGGutterColumn, *columnGap);
-
-  if (auto gapRatio = flex.gapRatio)
-    YGNodeStyleSetGapPercent(_yogaNode, YGGutterAll,
-                             100 * utils::clampRatio(*gapRatio));
-
-  if (auto rowGapRatio = flex.rowGapRatio)
-    YGNodeStyleSetGapPercent(_yogaNode, YGGutterRow,
-                             100 * utils::clampRatio(*rowGapRatio));
-
-  if (auto columnGapRatio = flex.columnGapRatio)
-    YGNodeStyleSetGapPercent(_yogaNode, YGGutterColumn,
-                             100 * utils::clampRatio(*columnGapRatio));
-}
-
-void Element::updateSpacing(const style::Spacing& spacing) {
-  // margins
-
-  std::unordered_map<YGEdge, std::optional<utils::ValueRatioAuto<int>>>
-      margins = {{YGEdgeAll, spacing.margin},
-                 {YGEdgeLeft, spacing.marginLeft},
-                 {YGEdgeRight, spacing.marginRight},
-                 {YGEdgeTop, spacing.marginTop},
-                 {YGEdgeBottom, spacing.marginBottom},
-                 {YGEdgeVertical, spacing.marginVertical},
-                 {YGEdgeHorizontal, spacing.marginHorizontal}};
-
-  for (auto& [edge, optMargin] : margins) {
-    if (auto margin = optMargin) {
-      if (auto marginValue = std::get_if<utils::Value<int>>(&*margin))
-        YGNodeStyleSetMargin(_yogaNode, edge, marginValue->value);
-
-      if (auto marginRatio = std::get_if<utils::Ratio>(&*margin))
-        YGNodeStyleSetMarginPercent(
-            _yogaNode, edge, 100 * utils::clampRatio(marginRatio->ratio));
-
-      if (std::get_if<utils::Auto>(&*margin))
-        YGNodeStyleSetMarginAuto(_yogaNode, edge);
+        if (auto value = std::get_if<style::FlexBasisValue>(&(*flexBasis)))
+            YGNodeStyleSetFlexBasis(_yogaNode, value->value);
     }
-  }
 
-  // paddings
+    if (auto gap = flex.gap)
+        YGNodeStyleSetGap(_yogaNode, YGGutterAll, *gap);
 
-  std::unordered_map<YGEdge, std::optional<utils::ValueRatio<int>>> paddings = {
-      {YGEdgeAll, spacing.padding},
-      {YGEdgeLeft, spacing.paddingLeft},
-      {YGEdgeRight, spacing.paddingRight},
-      {YGEdgeTop, spacing.paddingTop},
-      {YGEdgeBottom, spacing.paddingBottom},
-      {YGEdgeHorizontal, spacing.paddingHorizontal},
-      {YGEdgeVertical, spacing.paddingVertical}};
+    if (auto rowGap = flex.rowGap)
+        YGNodeStyleSetGap(_yogaNode, YGGutterRow, *rowGap);
 
-  for (auto& [edge, optPadding] : paddings) {
-    if (auto padding = optPadding) {
-      if (auto paddingValue = std::get_if<utils::Value<int>>(&*padding))
-        YGNodeStyleSetPadding(_yogaNode, edge, paddingValue->value);
+    if (auto columnGap = flex.columnGap)
+        YGNodeStyleSetGap(_yogaNode, YGGutterColumn, *columnGap);
 
-      if (auto paddingRatio = std::get_if<utils::Ratio>(&*padding))
-        YGNodeStyleSetPaddingPercent(
-            _yogaNode, edge, 100 * utils::clampRatio(paddingRatio->ratio));
-    }
-  }
+    if (auto gapRatio = flex.gapRatio)
+        YGNodeStyleSetGapPercent(_yogaNode, YGGutterAll,
+                                 100 * utils::clampRatio(*gapRatio));
 
-  // borders
+    if (auto rowGapRatio = flex.rowGapRatio)
+        YGNodeStyleSetGapPercent(_yogaNode, YGGutterRow,
+                                 100 * utils::clampRatio(*rowGapRatio));
 
-  std::unordered_map<YGEdge, std::optional<float>> borders = {
-      {YGEdgeAll, spacing.border},
-      {YGEdgeLeft, spacing.borderLeft},
-      {YGEdgeRight, spacing.borderRight},
-      {YGEdgeTop, spacing.borderTop},
-      {YGEdgeBottom, spacing.borderBottom}};
-
-  for (auto& [edge, optBorder] : borders) {
-    if (auto border = optBorder) {
-      YGNodeStyleSetBorder(_yogaNode, edge, *border);
-    }
-  }
+    if (auto columnGapRatio = flex.columnGapRatio)
+        YGNodeStyleSetGapPercent(_yogaNode, YGGutterColumn,
+                                 100 * utils::clampRatio(*columnGapRatio));
 }
 
-void Element::updateSize(const style::Size& size) {
-  if (auto width = size.width) {
-    if (auto value = std::get_if<utils::Value<int>>(&*width))
-      YGNodeStyleSetWidth(_yogaNode, value->value);
+void Element::updateSpacing(const style::Spacing &spacing) {
+    // margins
 
-    if (auto ratio = std::get_if<utils::Ratio>(&*width))
-      YGNodeStyleSetWidthPercent(_yogaNode,
-                                 100 * utils::clampRatio(ratio->ratio));
+    std::unordered_map<YGEdge, std::optional<utils::ValueRatioAuto<int>>>
+        margins = {{YGEdgeAll, spacing.margin},
+                   {YGEdgeLeft, spacing.marginLeft},
+                   {YGEdgeRight, spacing.marginRight},
+                   {YGEdgeTop, spacing.marginTop},
+                   {YGEdgeBottom, spacing.marginBottom},
+                   {YGEdgeVertical, spacing.marginVertical},
+                   {YGEdgeHorizontal, spacing.marginHorizontal}};
 
-    if (std::holds_alternative<utils::Auto>(*width))
-      YGNodeStyleSetWidthAuto(_yogaNode);
-  }
+    for (auto &[edge, optMargin] : margins) {
+        if (auto margin = optMargin) {
+            if (auto marginValue = std::get_if<utils::Value<int>>(&*margin))
+                YGNodeStyleSetMargin(_yogaNode, edge, marginValue->value);
 
-  if (auto height = size.height) {
-    if (auto value = std::get_if<utils::Value<int>>(&*height))
-      YGNodeStyleSetHeight(_yogaNode, value->value);
+            if (auto marginRatio = std::get_if<utils::Ratio>(&*margin))
+                YGNodeStyleSetMarginPercent(
+                    _yogaNode, edge, 100 * utils::clampRatio(marginRatio->ratio));
 
-    if (auto ratio = std::get_if<utils::Ratio>(&*height))
-      YGNodeStyleSetHeightPercent(_yogaNode,
-                                  100 * utils::clampRatio(ratio->ratio));
-
-    if (std::holds_alternative<utils::Auto>(*height))
-      YGNodeStyleSetHeightAuto(_yogaNode);
-  }
-
-  if (auto mw = size.minWidth)
-    YGNodeStyleSetMinWidth(_yogaNode, *mw);
-
-  if (auto mh = size.minHeight)
-    YGNodeStyleSetMinHeight(_yogaNode, *mh);
-
-  if (auto mw = size.maxWidth)
-    YGNodeStyleSetMinWidth(_yogaNode, *mw);
-
-  if (auto mh = size.maxHeight)
-    YGNodeStyleSetMinHeight(_yogaNode, *mh);
-
-  if (auto aspectRatio = size.aspectRatio)
-    YGNodeStyleSetWidthPercent(_yogaNode,
-                               100 * utils::clampRatio(*aspectRatio));
-}
-
-void Element::drawBackground(const Rectangle& bb) {
-  if (bb.width + bb.height == 0)
-    return;
-
-  if (auto bg = _style.backgroundColor) {
-    if (auto radius = _style.borderRadius) {
-      if (auto ratio = std::get_if<utils::Ratio>(&*radius)) {
-        auto radius = utils::clampRatio(ratio->ratio);
-        DrawRectangleRounded(bb, radius, getSegmentCount(radius), *bg);
-      }
-
-      if (auto value = std::get_if<utils::Value<float>>(&*radius)) {
-        auto radius =
-            utils::clampRatio(value->value / std::min(bb.width, bb.height));
-        DrawRectangleRounded(bb, radius, getSegmentCount(radius), *bg);
-      }
-    } else {
-      DrawRectangle(bb.x, bb.y, bb.width, bb.height, *bg);
+            if (std::get_if<utils::Auto>(&*margin))
+                YGNodeStyleSetMarginAuto(_yogaNode, edge);
+        }
     }
-  }
+
+    // paddings
+
+    std::unordered_map<YGEdge, std::optional<utils::ValueRatio<int>>> paddings = {
+        {YGEdgeAll, spacing.padding},
+        {YGEdgeLeft, spacing.paddingLeft},
+        {YGEdgeRight, spacing.paddingRight},
+        {YGEdgeTop, spacing.paddingTop},
+        {YGEdgeBottom, spacing.paddingBottom},
+        {YGEdgeHorizontal, spacing.paddingHorizontal},
+        {YGEdgeVertical, spacing.paddingVertical}};
+
+    for (auto &[edge, optPadding] : paddings) {
+        if (auto padding = optPadding) {
+            if (auto paddingValue = std::get_if<utils::Value<int>>(&*padding))
+                YGNodeStyleSetPadding(_yogaNode, edge, paddingValue->value);
+
+            if (auto paddingRatio = std::get_if<utils::Ratio>(&*padding))
+                YGNodeStyleSetPaddingPercent(
+                    _yogaNode, edge, 100 * utils::clampRatio(paddingRatio->ratio));
+        }
+    }
+
+    // borders
+
+    std::unordered_map<YGEdge, std::optional<float>> borders = {
+        {YGEdgeAll, spacing.border},
+        {YGEdgeLeft, spacing.borderLeft},
+        {YGEdgeRight, spacing.borderRight},
+        {YGEdgeTop, spacing.borderTop},
+        {YGEdgeBottom, spacing.borderBottom}};
+
+    for (auto &[edge, optBorder] : borders) {
+        if (auto border = optBorder) {
+            YGNodeStyleSetBorder(_yogaNode, edge, *border);
+        }
+    }
 }
 
-void Element::drawBorder(const Rectangle& bb) {
-  if (!_layout.spacing.has_value())
-    return;
+void Element::updateSize(const style::Size &size) {
+    if (auto width = size.width) {
+        if (auto value = std::get_if<utils::Value<int>>(&*width))
+            YGNodeStyleSetWidth(_yogaNode, value->value);
 
-  const auto evenBorderThickness = _layout.spacing->border.has_value() &&
-                                   !_layout.spacing->borderBottom.has_value() &&
-                                   !_layout.spacing->borderTop.has_value() &&
-                                   !_layout.spacing->borderLeft.has_value() &&
-                                   !_layout.spacing->borderRight.has_value();
+        if (auto ratio = std::get_if<utils::Ratio>(&*width))
+            YGNodeStyleSetWidthPercent(_yogaNode,
+                                       100 * utils::clampRatio(ratio->ratio));
 
-  bool drawRoundedBorders = false;
+        if (std::holds_alternative<utils::Auto>(*width))
+            YGNodeStyleSetWidthAuto(_yogaNode);
+    }
 
-  if (auto border = _layout.spacing->border;
-      border.has_value() && evenBorderThickness) {
-    if (auto radius = _style.borderRadius) {
-      // TODO : make border radius
-      // work on non-even borders
-      if (auto bg = _style.borderColor) {
-        if (auto ratio = std::get_if<utils::Ratio>(&*radius)) {
-          auto radius = utils::clampRatio(ratio->ratio);
-          DrawRectangleRoundedLines(bb, radius, getSegmentCount(radius),
-                                    *border, *bg);
+    if (auto height = size.height) {
+        if (auto value = std::get_if<utils::Value<int>>(&*height))
+            YGNodeStyleSetHeight(_yogaNode, value->value);
+
+        if (auto ratio = std::get_if<utils::Ratio>(&*height))
+            YGNodeStyleSetHeightPercent(_yogaNode,
+                                        100 * utils::clampRatio(ratio->ratio));
+
+        if (std::holds_alternative<utils::Auto>(*height))
+            YGNodeStyleSetHeightAuto(_yogaNode);
+    }
+
+    if (auto mw = size.minWidth)
+        YGNodeStyleSetMinWidth(_yogaNode, *mw);
+
+    if (auto mh = size.minHeight)
+        YGNodeStyleSetMinHeight(_yogaNode, *mh);
+
+    if (auto mw = size.maxWidth)
+        YGNodeStyleSetMinWidth(_yogaNode, *mw);
+
+    if (auto mh = size.maxHeight)
+        YGNodeStyleSetMinHeight(_yogaNode, *mh);
+
+    if (auto aspectRatio = size.aspectRatio)
+        YGNodeStyleSetWidthPercent(_yogaNode,
+                                   100 * utils::clampRatio(*aspectRatio));
+}
+
+void Element::drawBackground(const Rectangle &bb) {
+    if (bb.width + bb.height == 0)
+        return;
+
+    if (auto bg = _style.backgroundColor) {
+        if (auto radius = _style.borderRadius) {
+            if (auto ratio = std::get_if<utils::Ratio>(&*radius)) {
+                auto radius = utils::clampRatio(ratio->ratio);
+                DrawRectangleRounded(bb, radius, getSegmentCount(radius), *bg);
+            }
+
+            if (auto value = std::get_if<utils::Value<float>>(&*radius)) {
+                auto radius =
+                    utils::clampRatio(value->value / std::min(bb.width, bb.height));
+                DrawRectangleRounded(bb, radius, getSegmentCount(radius), *bg);
+            }
+        } else {
+            DrawRectangle(bb.x, bb.y, bb.width, bb.height, *bg);
+        }
+    }
+}
+
+void Element::drawBorder(const Rectangle &bb) {
+    if (!_layout.spacing.has_value())
+        return;
+
+    const auto evenBorderThickness = _layout.spacing->border.has_value() &&
+                                     !_layout.spacing->borderBottom.has_value() &&
+                                     !_layout.spacing->borderTop.has_value() &&
+                                     !_layout.spacing->borderLeft.has_value() &&
+                                     !_layout.spacing->borderRight.has_value();
+
+    bool drawRoundedBorders = false;
+
+    if (auto border = _layout.spacing->border;
+        border.has_value() && evenBorderThickness) {
+        if (auto radius = _style.borderRadius) {
+            // TODO : make border radius
+            // work on non-even borders
+            if (auto bg = _style.borderColor) {
+                if (auto ratio = std::get_if<utils::Ratio>(&*radius)) {
+                    auto radius = utils::clampRatio(ratio->ratio);
+                    DrawRectangleRoundedLines(bb, radius, getSegmentCount(radius),
+                                              *border, *bg);
+                }
+
+                if (auto value = std::get_if<utils::Value<float>>(&*radius)) {
+                    auto radius =
+                        utils::clampRatio(value->value / std::min(bb.width, bb.height));
+                    DrawRectangleRoundedLines(bb, radius, getSegmentCount(radius),
+                                              *border, *bg);
+                }
+
+                drawRoundedBorders = true;
+            }
+        }
+    }
+
+    if (!drawRoundedBorders) {
+        utils::Edges<Color> finalColors = {0};
+        {
+            if (auto bg = _style.borderColor) {
+                finalColors.top = finalColors.left = finalColors.right =
+                    finalColors.bottom = *bg;
+            }
+
+            if (auto colors = _style.borderColors) {
+                if (auto top = colors->top)
+                    finalColors.top = *top;
+                if (auto bottom = colors->bottom)
+                    finalColors.bottom = *bottom;
+                if (auto left = colors->left)
+                    finalColors.left = *left;
+                if (auto right = colors->right)
+                    finalColors.right = *right;
+            }
         }
 
-        if (auto value = std::get_if<utils::Value<float>>(&*radius)) {
-          auto radius =
-              utils::clampRatio(value->value / std::min(bb.width, bb.height));
-          DrawRectangleRoundedLines(bb, radius, getSegmentCount(radius),
-                                    *border, *bg);
+        utils::Edges<float> finalBorders = {0};
+        {
+            auto &spacing = *_layout.spacing;
+            if (auto border = spacing.border) {
+                finalBorders.top = finalBorders.left = finalBorders.right =
+                    finalBorders.bottom = *border;
+            }
+
+            if (auto border = spacing.borderLeft)
+                finalBorders.left = *border;
+
+            if (auto border = spacing.borderTop)
+                finalBorders.top = *border;
+
+            if (auto border = spacing.borderBottom)
+                finalBorders.bottom = *border;
+
+            if (auto border = spacing.borderRight)
+                finalBorders.right = *border;
         }
 
-        drawRoundedBorders = true;
-      }
+        utils::drawRectangle(bb, finalBorders.top, finalBorders.bottom,
+                             finalBorders.left, finalBorders.right, finalColors.top,
+                             finalColors.bottom, finalColors.left,
+                             finalColors.right);
     }
-  }
-
-  if (!drawRoundedBorders) {
-    utils::Edges<Color> finalColors = {0};
-    {
-      if (auto bg = _style.borderColor) {
-        finalColors.top = finalColors.left = finalColors.right =
-            finalColors.bottom = *bg;
-      }
-
-      if (auto colors = _style.borderColors) {
-        if (auto top = colors->top)
-          finalColors.top = *top;
-        if (auto bottom = colors->bottom)
-          finalColors.bottom = *bottom;
-        if (auto left = colors->left)
-          finalColors.left = *left;
-        if (auto right = colors->right)
-          finalColors.right = *right;
-      }
-    }
-
-    utils::Edges<float> finalBorders = {0};
-    {
-      auto& spacing = *_layout.spacing;
-      if (auto border = spacing.border) {
-        finalBorders.top = finalBorders.left = finalBorders.right =
-            finalBorders.bottom = *border;
-      }
-
-      if (auto border = spacing.borderLeft)
-        finalBorders.left = *border;
-
-      if (auto border = spacing.borderTop)
-        finalBorders.top = *border;
-
-      if (auto border = spacing.borderBottom)
-        finalBorders.bottom = *border;
-
-      if (auto border = spacing.borderRight)
-        finalBorders.right = *border;
-    }
-
-    utils::drawRectangle(bb, finalBorders.top, finalBorders.bottom,
-                         finalBorders.left, finalBorders.right, finalColors.top,
-                         finalColors.bottom, finalColors.left,
-                         finalColors.right);
-  }
 }
 
 void Element::render() {
-  const auto bb = getBoundingRect();
+    const auto bb = getBoundingRect();
 
-  drawBackground(bb);
-  drawBorder(bb);
+    drawBackground(bb);
+    drawBorder(bb);
 }
 
 int Element::getSegmentCount(float radius) const {
-  return int(radius * 4) < 8 ? 8 : int(radius * 2.5);
+    return int(radius * 4) < 8 ? 8 : int(radius * 2.5);
 }
 
 ui::style::Theme Element::getPreferredTheme() const {
-  return _preferredTheme;
+    return _preferredTheme;
 }
 
 void Element::setPreferredTheme(ui::style::Theme theme) {
-  const auto prev = _preferredTheme;
-  _preferredTheme = theme;
+    const auto prev = _preferredTheme;
+    _preferredTheme = theme;
 
-  if (prev != _preferredTheme) {
-    updateStyle(ui::defaults::elementStyles(_preferredTheme));
-    onPreferredThemeChanged(_preferredTheme);
-  }
+    if (prev != _preferredTheme) {
+        updateStyle(ui::defaults::elementStyles(_preferredTheme));
+        onPreferredThemeChanged(_preferredTheme);
+    }
 }
 
 void Element::setParent(std::shared_ptr<Element> parent) {
-  _parent = parent;
-  if (!_cachedColor.has_value()) {
-    _cachedColor = parent->_cachedColor;
-    // TODO
-  }
+    _parent = parent;
+    setPreferredTheme(parent->getPreferredTheme());
+
+    if (!_cachedColor.has_value())
+        _cachedColor = parent->_cachedColor;
 }
 
-}  // namespace element
-}  // namespace ui
+std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,
+                                              std::shared_ptr<Element> child) {
+    if (child == nullptr || parent == nullptr)
+        return parent;
+
+    parent->appendChild(child);
+    child->setParent(parent);
+
+    return parent;
+}
+
+} // namespace element
+} // namespace ui

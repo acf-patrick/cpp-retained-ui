@@ -32,7 +32,7 @@ int main() {
     view->updateLayout(layout);
 
     auto style = view->getStyle();
-    style.backgroundColor = SKYBLUE;
+    // style.backgroundColor = SKYBLUE;
     view->updateStyle(style);
   }
 
