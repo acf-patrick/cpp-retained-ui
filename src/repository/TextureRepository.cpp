@@ -32,7 +32,7 @@ std::optional<Texture2D> TextureRepository::get(const std::string& handle) {
 bool TextureRepository::load(const std::string& handle, const fs::path& resource) {
   if (!fs::exists(resource) || !fs::is_regular_file(resource))
     return false;
-  _textures[handle] = LoadTexture(resource.c_str());
+  _textures[handle] = LoadTexture(resource.string().c_str());
   return true;
 }
 

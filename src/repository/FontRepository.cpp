@@ -31,7 +31,7 @@ std::optional<Font> FontRepository::get(const std::string& handle) {
 bool FontRepository::load(const std::string& handle, const fs::path& resource) {
   if (!fs::exists(resource) || !fs::is_regular_file(resource))
     return false;
-  _fonts[handle] = LoadFont(resource.c_str());
+  _fonts[handle] = LoadFont(resource.string().c_str());
   return true;
 }
 
