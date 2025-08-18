@@ -17,112 +17,116 @@ namespace ui {
 namespace element {
 
 class Element {
-  static unsigned int nextId;
+    static unsigned int nextId;
 
- protected:
-  ui::style::Layout _layout;
-  ui::style::Style _style;
-  YGNodeRef _yogaNode;
-  unsigned int _id;
-  ui::style::Theme _preferredTheme;
-  std::string _name;          // name of this element
-  Vector2 _absolutePosition;  // relative to root element
-  std::weak_ptr<Element> _parent;
-  std::vector<std::shared_ptr<Element>> _children;
-  std::optional<Color> _cachedColor;  // cached color on this node
+  protected:
+    ui::style::Layout _layout;
+    ui::style::Style _style;
+    YGNodeRef _yogaNode;
+    unsigned int _id;
+    ui::style::Theme _preferredTheme;
+    std::string _name;         // name of this element
+    Vector2 _absolutePosition; // relative to root element
+    std::weak_ptr<Element> _parent;
+    std::vector<std::shared_ptr<Element>> _children;
+    ui::style::Inheritables _cachedInheritableProps;
+    std::optional<Color> _cachedColor; // cached color on this node
 
- protected:
-  Element(const std::string& name = "Element");
+  protected:
+    Element(const std::string &name = "Element");
 
-  void updateBoxSizing(ui::style::BoxSizing boxSizing);
-  void updateOverflow(ui::style::Overflow overflow);
-  void updateDisplay(ui::style::Display display);
-  void updatePosition(const ui::style::Position& position);
-  void updatePositionType(ui::style::PositionType positionType);
-  void updateFlex(const ui::style::Flex& flex);
-  void updateSpacing(const ui::style::Spacing& spacing);
-  void updateSize(const ui::style::Size& size);
+    void updateBoxSizing(ui::style::BoxSizing boxSizing);
+    void updateOverflow(ui::style::Overflow overflow);
+    void updateDisplay(ui::style::Display display);
+    void updatePosition(const ui::style::Position &position);
+    void updatePositionType(ui::style::PositionType positionType);
+    void updateFlex(const ui::style::Flex &flex);
+    void updateSpacing(const ui::style::Spacing &spacing);
+    void updateSize(const ui::style::Size &size);
+    void updateCachedInheritablePropsFrom(std::shared_ptr<Element> element);
 
- protected:
-  void appendChild(std::shared_ptr<Element> child);
+  protected:
+    void appendChild(std::shared_ptr<Element> child);
 
-  // used by AppendChild methods
-  void setParent(std::shared_ptr<Element> parent);
-  
-  void setPreferredTheme(ui::style::Theme theme);
+    // used by AppendChild methods
+    void setParent(std::shared_ptr<Element> parent);
 
-  int getSegmentCount(float radius) const;
-  void markAsDirty();
+    void setPreferredTheme(ui::style::Theme theme);
 
-  virtual void onPreferredThemeChanged(ui::style::Theme theme);
-  virtual void onChildAppended(std::shared_ptr<Element> child);
-  virtual void onDirtyFlagTriggered();
+    int getSegmentCount(float radius) const;
+    void markInheritableStylesAsDirty();
+    void markLayoutAsDirty();
 
- protected:
-  void drawBackground(const Rectangle& rect);
-  void drawBorder(const Rectangle& rect);
+    virtual void onPreferredThemeChanged(ui::style::Theme theme);
+    virtual void onChildAppended(std::shared_ptr<Element> child);
+    virtual void onStyleDirtyFlagTriggered();
+    virtual void onLayoutDirtyFlagTriggered();
 
- public:
-  virtual ~Element();
+  protected:
+    void drawBackground(const Rectangle &rect);
+    void drawBorder(const Rectangle &rect);
 
-  // Layout rendering is performed on root node using BFS.
-  // Custom implementation for inherited classes should only render themselves
-  // not their children.
-  virtual void render();
+  public:
+    virtual ~Element();
 
-  void removeChild(std::shared_ptr<Element> child);
+    // Layout rendering is performed on root node using BFS.
+    // Custom implementation for inherited classes should only render themselves
+    // not their children.
+    virtual void render();
 
-  void removeAllChildren();
+    void removeChild(std::shared_ptr<Element> child);
 
-  // Dirty flag won't be broadcast if this element does not have a parent
-  // element
-  void updateLayout(const ui::style::Layout& layout);
+    void removeAllChildren();
 
-  void updateStyle(const ui::style::Style& style);
+    // Dirty flag won't be broadcast if this element does not have a parent
+    // element
+    void updateLayout(const ui::style::Layout &layout);
 
-  // return display == none
-  bool isNotDisplayed() const;
+    void updateStyle(const ui::style::Style &style);
 
-  // Warning : must be called after layout calculation. Compute absolute
-  // position of this element from parent's absolute position
-  void updateAbsolutePosition();
+    // return display == none
+    bool isNotDisplayed() const;
 
-  std::vector<std::shared_ptr<Element>> getSiblings();
+    // Warning : must be called after layout calculation. Compute absolute
+    // position of this element from parent's absolute position
+    void updateAbsolutePosition();
 
-  unsigned int getId() const;
+    std::vector<std::shared_ptr<Element>> getSiblings();
 
-  ui::style::Layout getLayout() const;
+    unsigned int getId() const;
 
-  ui::style::Style getStyle() const;
+    ui::style::Layout getLayout() const;
 
-  std::shared_ptr<Element> getParent();
+    ui::style::Style getStyle() const;
 
-  std::vector<std::shared_ptr<Element>> getChildren();
+    std::shared_ptr<Element> getParent();
 
-  // Get bouding box of current element.
-  // Might be invalid if called before layout calculation
-  Rectangle getBoundingRect() const;
+    std::vector<std::shared_ptr<Element>> getChildren();
 
-  ui::style::Theme getPreferredTheme() const;
+    // Get bouding box of current element.
+    // Might be invalid if called before layout calculation
+    Rectangle getBoundingRect() const;
 
-  // Append child to parent's children and set child's parent.
-  // The reason behind this function instead of a method is to keep owned
-  // reference to both parent and child element by deciding to wrap parent with
-  // weak_ptr
-  // @return parent element
-  static std::shared_ptr<Element> AppendChild(std::shared_ptr<Element> parent,
-                                              std::shared_ptr<Element> child);
+    ui::style::Theme getPreferredTheme() const;
 
-  template <typename... Elements>
-  static std::shared_ptr<Element> AppendChildren(
-      std::shared_ptr<Element> parent,
-      Elements&&... children) {
-    (AppendChild(parent, children), ...);
-    return parent;
-  }
+    // Append child to parent's children and set child's parent.
+    // The reason behind this function instead of a method is to keep owned
+    // reference to both parent and child element by deciding to wrap parent with
+    // weak_ptr
+    // @return parent element
+    static std::shared_ptr<Element> AppendChild(std::shared_ptr<Element> parent,
+                                                std::shared_ptr<Element> child);
 
-  friend class Root;
+    template <typename... Elements>
+    static std::shared_ptr<Element> AppendChildren(
+        std::shared_ptr<Element> parent,
+        Elements &&...children) {
+        (AppendChild(parent, children), ...);
+        return parent;
+    }
+
+    friend class Root;
 };
 
-}  // namespace element
-}  // namespace ui
+} // namespace element
+} // namespace ui

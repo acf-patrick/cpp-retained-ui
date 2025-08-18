@@ -1,6 +1,7 @@
 #include "./Element.h"
 
 #include "../../utils/functions.h"
+#include "../../utils/operators.h"
 #include "../defaults.h"
 
 #include <yoga/YGNodeLayout.h>
@@ -39,14 +40,20 @@ bool Element::isNotDisplayed() const {
 
 void Element::onChildAppended(std::shared_ptr<Element>) { /* Do nothing */ }
 
-void Element::onDirtyFlagTriggered() { /* Do nothing */ }
+void Element::onLayoutDirtyFlagTriggered() { /* Do nothing */ }
 
-void Element::onPreferredThemeChanged(ui::style::Theme theme) { /* Do nothing */
+void Element::onStyleDirtyFlagTriggered() { /* Do nothing */ }
+
+void Element::onPreferredThemeChanged(ui::style::Theme theme) { /* Do nothing */ }
+
+void Element::markInheritableStylesAsDirty() {
+    for (auto parent = _parent.lock(); parent; parent = parent->getParent())
+        parent->onStyleDirtyFlagTriggered();
 }
 
-void Element::markAsDirty() {
+void Element::markLayoutAsDirty() {
     for (auto parent = _parent.lock(); parent; parent = parent->getParent())
-        parent->onDirtyFlagTriggered();
+        parent->onLayoutDirtyFlagTriggered();
 }
 
 void Element::appendChild(std::shared_ptr<Element> child) {
@@ -123,7 +130,11 @@ void Element::updateAbsolutePosition() {
 }
 
 void Element::updateStyle(const style::Style &style) {
+    if (style.inheritables != _style.inheritables)
+        markInheritableStylesAsDirty();
+
     _style = style;
+    _cachedInheritableProps = style.inheritables;
 }
 
 void Element::updateLayout(const style::Layout &layout) {
@@ -162,7 +173,7 @@ void Element::updateLayout(const style::Layout &layout) {
         updateBoxSizing(*boxSizing);
     }
 
-    markAsDirty();
+    markLayoutAsDirty();
     _layout = layout;
 }
 
@@ -543,9 +554,14 @@ void Element::setPreferredTheme(ui::style::Theme theme) {
 void Element::setParent(std::shared_ptr<Element> parent) {
     _parent = parent;
     setPreferredTheme(parent->getPreferredTheme());
+}
 
-    if (!_cachedColor.has_value())
-        _cachedColor = parent->_cachedColor;
+void Element::updateCachedInheritablePropsFrom(std::shared_ptr<Element> element) {
+    if (!element)
+        return;
+
+    const auto &incomingProps = element->_cachedInheritableProps;
+    _cachedInheritableProps.updateInheritedFields(incomingProps);
 }
 
 std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,

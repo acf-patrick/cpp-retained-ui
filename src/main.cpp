@@ -44,11 +44,8 @@ int main() {
 
   root->finalize();
   while (!WindowShouldClose()) {
+    root->update();
     BeginDrawing();
-    if (root->shouldRecalculateLayout()) {
-      root->calculateLayout();
-    }
-
     root->render();
     EndDrawing();
   }
