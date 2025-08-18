@@ -51,9 +51,6 @@ class Element {
   
   void setPreferredTheme(ui::style::Theme theme);
 
-  // notify children of color change or cache parent's text color
-  void triggerStyleColorChange(const ui::style::ColorProperty& color);
-
   int getSegmentCount(float radius) const;
   void markAsDirty();
 

@@ -7,7 +7,7 @@ namespace defaults {
 ui::style::Style elementStyles(ui::style::Theme theme) {
   ui::style::Style style;
 
-  style.color = ui::style::Inherit{};
+  // style.color = ui::style::Inherit{};
 
   return style;
 }
@@ -15,7 +15,7 @@ ui::style::Style elementStyles(ui::style::Theme theme) {
 ui::style::Style rootStyles(ui::style::Theme theme) {
   ui::style::Style style;
 
-  style.color = theme == ui::style::Theme::Dark ? WHITE : BLACK;
+  // style.color = theme == ui::style::Theme::Dark ? WHITE : BLACK;
   style.backgroundColor = theme == ui::style::Theme::Dark ? BLACK : WHITE;
 
   return style;

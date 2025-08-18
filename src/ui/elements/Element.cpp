@@ -113,37 +113,6 @@ style::Layout Element::getLayout() const {
     return _layout;
 }
 
-void Element::triggerStyleColorChange(const ui::style::ColorProperty &color) {
-    if (ui::style::helper::isColorInherited(color)) {
-        if (auto parent = getParent())
-            if (auto parentColor = parent->_cachedColor)
-                _cachedColor = *parentColor;
-
-        return;
-    }
-
-    _cachedColor = std::get<Color>(color);
-
-    std::queue<Element *> queue;
-    std::unordered_set<unsigned int> visitedIds;
-    queue.push(this);
-
-    while (!queue.empty()) {
-        auto e = queue.front();
-        queue.pop();
-
-        if (visitedIds.contains(e->_id))
-            continue;
-
-        if (ui::style::helper::isColorInherited(e->_style.color) || e == this) {
-            e->_cachedColor = _cachedColor;
-
-            for (auto child : e->_children)
-                queue.push(child.get());
-        }
-    }
-}
-
 void Element::updateAbsolutePosition() {
     if (auto parent = _parent.lock()) {
         _absolutePosition.x =
@@ -154,10 +123,6 @@ void Element::updateAbsolutePosition() {
 }
 
 void Element::updateStyle(const style::Style &style) {
-    if (_style.color != style.color) {
-        triggerStyleColorChange(style.color);
-    }
-
     _style = style;
 }
 
