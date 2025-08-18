@@ -30,7 +30,6 @@ class Element {
     std::weak_ptr<Element> _parent;
     std::vector<std::shared_ptr<Element>> _children;
     ui::style::Inheritables _cachedInheritableProps;
-    std::optional<Color> _cachedColor; // cached color on this node
 
   protected:
     Element(const std::string &name = "Element");

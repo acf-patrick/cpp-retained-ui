@@ -130,11 +130,12 @@ void Element::updateAbsolutePosition() {
 }
 
 void Element::updateStyle(const style::Style &style) {
-    if (style.inheritables != _style.inheritables)
+    if (style.inheritables != _style.inheritables) {
+        _cachedInheritableProps = style.inheritables;
         markInheritableStylesAsDirty();
+    }
 
     _style = style;
-    _cachedInheritableProps = style.inheritables;
 }
 
 void Element::updateLayout(const style::Layout &layout) {
@@ -560,8 +561,8 @@ void Element::updateCachedInheritablePropsFrom(std::shared_ptr<Element> element)
     if (!element)
         return;
 
-    const auto &incomingProps = element->_cachedInheritableProps;
-    _cachedInheritableProps.updateInheritedFields(incomingProps);
+    const auto &newProps = element->_cachedInheritableProps;
+    _cachedInheritableProps.updateInheritedFields(_style.inheritables, newProps);
 }
 
 std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,

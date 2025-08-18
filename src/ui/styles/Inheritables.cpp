@@ -3,9 +3,9 @@
 namespace ui {
 namespace style {
 
-void Inheritables::updateInheritedFields(const Inheritables &source) {
-    if (color.isInherited() && !source.color.isInherited())
-        color = source.color.unwrap();
+void Inheritables::updateInheritedFields(const Inheritables &source, const Inheritables &newProps) {
+    if (source.color.isInherited() && !newProps.color.isInherited())
+        color = newProps.color.unwrap();
 }
 
 } // namespace style

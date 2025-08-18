@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <variant>
 
+#include "../utils/operators.h"
+
 namespace ui {
 namespace style {
 
@@ -60,6 +62,15 @@ class MaybeInherited {
     MaybeInherited<T> &operator=(const T &value) {
         _value = value;
         return *this;
+    }
+
+    bool operator==(const T& value) const {
+        if (isInherited()) return false;
+        return unwrap() == value;
+    }
+
+    bool operator!=(const T& value) const {
+        return !(*this == value);
     }
 
     bool operator==(const MaybeInherited<T> &rhs) const {

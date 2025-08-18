@@ -10,7 +10,7 @@ namespace style {
 struct Inheritables {
     MaybeInherited<Color> color;
 
-    void updateInheritedFields(const Inheritables& source);
+    void updateInheritedFields(const Inheritables& source, const Inheritables& newProps);
 
     bool operator<=>(const Inheritables &) const = default;
 };
