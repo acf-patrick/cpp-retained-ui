@@ -11,6 +11,7 @@ namespace style {
 
 struct Inheritables {
     MaybeInherited<Color> color;
+    MaybeInherited<unsigned int> letterSpacing;
     MaybeInherited<unsigned int> fontSize; // in pixels
     MaybeInherited<std::vector<std::string>> fontFamily;
 

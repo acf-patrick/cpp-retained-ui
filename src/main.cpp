@@ -33,8 +33,20 @@ int main() {
     auto button = std::make_shared<ui::element::Button>();
     ui::element::Element::AppendChild(view, button);
 
+    {
+        auto style = button->getStyle();
+        style.inheritables.fontSize = 24;
+        style.inheritables.color = BROWN;
+        std::vector<std::string> fontFamily;
+        fontFamily.push_back("roboto");
+        style.inheritables.fontFamily = fontFamily;
+        button->updateStyle(style);
+    }
+
     auto text = std::make_shared<ui::element::Text>("This is a button");
     ui::element::Element::AppendChild(button, text);
+
+    repository::FontRepository::Get()->load("roboto", "Roboto-Regular.ttf");
 
     root->finalize();
     while (!WindowShouldClose()) {

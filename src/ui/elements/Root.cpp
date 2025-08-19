@@ -7,7 +7,7 @@
 namespace ui {
 namespace element {
 
-Root::Root(const Vector2 &windowSize) {
+Root::Root(const Vector2 &windowSize) : Element("Root") {
     YGNodeFree(_yogaNode);
     _config = YGConfigNew();
     YGConfigSetUseWebDefaults(_config, true);
@@ -118,13 +118,13 @@ void Root::update() {
 
 void Root::render() {
     if (!_finalized)
-        throw std::logic_error("Rendering non-finalized root element");
+        throw std::logic_error("[Root] Rendering non-finalized root element");
 
     if (_dirtyLayout)
-        throw std::logic_error("Rendering dirty layout");
+        throw std::logic_error("[Root] Rendering dirty layout");
 
     if (_dirtyCachedInheritableProps)
-        throw std::logic_error("Rendering with inherited styles not recalculated");
+        throw std::logic_error("[Root] Rendering with inherited styles not recalculated");
 
     std::queue<Element *> queue;
     queue.push(this);

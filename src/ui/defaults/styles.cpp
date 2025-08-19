@@ -15,6 +15,7 @@ ui::style::Style rootStyles(ui::style::Theme theme) {
     style.inheritables.color = theme == ui::style::Theme::Dark ? WHITE : BLACK;
     style.inheritables.fontSize = 16;
     style.inheritables.fontFamily = std::vector<std::string>();
+    style.inheritables.letterSpacing = 0;
 
     style.backgroundColor = theme == ui::style::Theme::Dark ? BLACK : WHITE;
 

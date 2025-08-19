@@ -13,6 +13,7 @@ void Inheritables::updateInheritedFields(const Inheritables &source, const Inher
     applyInherited(color, source.color, newProps.color);
     applyInherited(fontSize, source.fontSize, newProps.fontSize);
     applyInherited(fontFamily, source.fontFamily, newProps.fontFamily);
+    applyInherited(letterSpacing, source.letterSpacing, newProps.letterSpacing);
 }
 
 } // namespace style
