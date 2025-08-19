@@ -6,9 +6,6 @@ namespace defaults {
 
 ui::style::Style elementStyles(ui::style::Theme theme) {
     ui::style::Style style;
-
-    // style.color = ui::style::Inherit{};
-
     return style;
 }
 
@@ -16,6 +13,9 @@ ui::style::Style rootStyles(ui::style::Theme theme) {
     ui::style::Style style;
 
     style.inheritables.color = theme == ui::style::Theme::Dark ? WHITE : BLACK;
+    style.inheritables.fontSize = 16;
+    style.inheritables.fontFamily = std::vector<std::string>();
+
     style.backgroundColor = theme == ui::style::Theme::Dark ? BLACK : WHITE;
 
     return style;

@@ -23,25 +23,14 @@ int main() {
 
     {
         auto layout = view->getLayout();
-
         auto &flex = layout.flex.emplace();
         flex.justifyContent = ui::style::JustifyContent::Center;
         flex.alignItems = ui::style::Alignment::Center;
         flex.flex = 1.0;
-
         view->updateLayout(layout);
-
-        auto style = view->getStyle();
-        // style.backgroundColor = SKYBLUE;
-        view->updateStyle(style);
     }
 
     auto button = std::make_shared<ui::element::Button>();
-    {
-        auto style = button->getStyle();
-        style.inheritables.color = YELLOW;
-        button->updateStyle(style);
-    }
     ui::element::Element::AppendChild(view, button);
 
     auto text = std::make_shared<ui::element::Text>("This is a button");

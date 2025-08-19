@@ -78,6 +78,7 @@ void Element::markInheritableStylesAsDirty() {
 }
 
 void Element::markLayoutAsDirty() {
+    // notify parent for layout recomputation
     for (auto parent = _parent.lock(); parent; parent = parent->getParent())
         parent->onLayoutDirtyFlagTriggered();
 }

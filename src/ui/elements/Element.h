@@ -78,10 +78,13 @@ class Element {
 
     void removeAllChildren();
 
-    // Dirty flag won't be broadcast if this element does not have a parent
-    // element
+    // Dirty flag won't be broadcast if this element does not have a parent element.
+    // Atempting to update inner node directly instead of calling this function will cause
+    // undefined behavior in dirty layout detection
     void updateLayout(const ui::style::Layout &layout);
 
+    // Atempting to set _style property directly instead of calling this function
+    // will cause undefined behavior in inherited properties update
     void updateStyle(const ui::style::Style &style);
 
     // return display == none
@@ -103,7 +106,7 @@ class Element {
 
     std::vector<std::shared_ptr<Element>> getChildren();
 
-    // Get bouding box of current element.
+    // Get bouding box of current element. (absolutePosition + yoga size)
     // Might be invalid if called before layout calculation
     Rectangle getBoundingRect() const;
 
