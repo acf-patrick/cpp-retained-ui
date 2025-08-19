@@ -10,7 +10,6 @@ class Root : public Element {
     YGConfigRef _config;
     bool _finalized = false;
     bool _dirtyLayout = true;          // should calculate layout at least once
-    bool _dirtyInheritedStyles = true; // should initialize cached props at least once
 
     void calculateLayout();
     void propagateStyles();
@@ -18,7 +17,6 @@ class Root : public Element {
 
   private:
     void onLayoutDirtyFlagTriggered() override;
-    void onStyleDirtyFlagTriggered() override;
     void onPreferredThemeChanged(ui::style::Theme theme) override;
 
   public:

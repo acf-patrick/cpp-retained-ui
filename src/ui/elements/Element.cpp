@@ -17,7 +17,7 @@ namespace element {
 unsigned int Element::nextId = 0;
 
 Element::Element(const std::string &name)
-    : _name(name), _preferredTheme(ui::style::Theme::Dark) {
+    : _preferredTheme(ui::style::Theme::Dark), _name(name), _dirtyCachedInheritableProps(true) {
     _id = nextId++;
     _absolutePosition = {.x = 0.0, .y = 0.0};
 
@@ -47,8 +47,34 @@ void Element::onStyleDirtyFlagTriggered() { /* Do nothing */ }
 void Element::onPreferredThemeChanged(ui::style::Theme theme) { /* Do nothing */ }
 
 void Element::markInheritableStylesAsDirty() {
-    for (auto parent = _parent.lock(); parent; parent = parent->getParent())
-        parent->onStyleDirtyFlagTriggered();
+    // walk up the tree
+    for (auto parent = _parent.lock(); parent; parent = parent->getParent()) {
+        if (!parent->_dirtyCachedInheritableProps) {
+            parent->_dirtyCachedInheritableProps = true;
+            parent->onStyleDirtyFlagTriggered();
+        }
+    }
+
+    // notify children
+    std::queue<Element *> queue;
+    queue.push(this);
+    std::unordered_set<unsigned int> visitedIds;
+
+    while (!queue.empty()) {
+        auto e = queue.front();
+        queue.pop();
+
+        if (visitedIds.contains(e->getId()))
+            continue;
+
+        if (!e->_dirtyCachedInheritableProps) {
+            e->_dirtyCachedInheritableProps = true;
+            e->onStyleDirtyFlagTriggered();
+
+            for (auto child : e->_children)
+                queue.push(child.get());
+        }
+    }
 }
 
 void Element::markLayoutAsDirty() {
@@ -142,37 +168,29 @@ void Element::updateLayout(const style::Layout &layout) {
     if (_layout == layout)
         return;
 
-    if (auto flex = layout.flex) {
+    if (auto flex = layout.flex)
         updateFlex(*flex);
-    }
 
-    if (auto size = layout.size) {
+    if (auto size = layout.size)
         updateSize(*size);
-    }
 
-    if (auto spacing = layout.spacing) {
+    if (auto spacing = layout.spacing)
         updateSpacing(*spacing);
-    }
 
-    if (auto position = layout.position) {
+    if (auto position = layout.position)
         updatePosition(*position);
-    }
 
-    if (auto position = layout.positionType) {
+    if (auto position = layout.positionType)
         updatePositionType(*position);
-    }
 
-    if (auto display = layout.display) {
+    if (auto display = layout.display)
         updateDisplay(*display);
-    }
 
-    if (auto overflow = layout.overflow) {
+    if (auto overflow = layout.overflow)
         updateOverflow(*overflow);
-    }
 
-    if (auto boxSizing = layout.boxSizing) {
+    if (auto boxSizing = layout.boxSizing)
         updateBoxSizing(*boxSizing);
-    }
 
     markLayoutAsDirty();
     _layout = layout;

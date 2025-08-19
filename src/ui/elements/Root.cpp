@@ -48,10 +48,6 @@ void Root::propagatePreferredTheme() {
     }
 }
 
-void Root::onStyleDirtyFlagTriggered() {
-    _dirtyInheritedStyles = true;
-}
-
 void Root::onLayoutDirtyFlagTriggered() {
     _dirtyLayout = true;
 }
@@ -94,22 +90,29 @@ void Root::propagateStyles() {
         auto node = queue.front();
         queue.pop();
 
-        if (node != this)
-            node->updateCachedInheritablePropsFrom(node->getParent());
+        if (visitedIds.contains(node->getId()))
+            continue;
 
-        visitedIds.emplace(node->getId());
-        for (auto &child : node->getChildren())
-            queue.push(child.get());
+        if (node->_dirtyCachedInheritableProps) {
+            if (node != this) {
+                node->updateCachedInheritablePropsFrom(node->getParent());
+                node->_dirtyCachedInheritableProps = false;
+            }
+
+            visitedIds.emplace(node->getId());
+            for (auto &child : node->getChildren())
+                queue.push(child.get());
+        }
     }
 
-    _dirtyInheritedStyles = false;
+    _dirtyCachedInheritableProps = false;
 }
 
 void Root::update() {
     if (_dirtyLayout)
         calculateLayout();
 
-    if (_dirtyInheritedStyles)
+    if (_dirtyCachedInheritableProps)
         propagateStyles();
 }
 
@@ -120,7 +123,7 @@ void Root::render() {
     if (_dirtyLayout)
         throw std::logic_error("Rendering dirty layout");
 
-    if (_dirtyInheritedStyles)
+    if (_dirtyCachedInheritableProps)
         throw std::logic_error("Rendering with inherited styles not recalculated");
 
     std::queue<Element *> queue;

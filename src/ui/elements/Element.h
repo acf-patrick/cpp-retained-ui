@@ -29,6 +29,7 @@ class Element {
     Vector2 _absolutePosition; // relative to root element
     std::weak_ptr<Element> _parent;
     std::vector<std::shared_ptr<Element>> _children;
+    bool _dirtyCachedInheritableProps;
     ui::style::Inheritables _cachedInheritableProps;
 
   protected:

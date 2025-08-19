@@ -49,12 +49,6 @@ int main() {
 
     root->finalize();
     while (!WindowShouldClose()) {
-        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-            auto style = button->getStyle();
-            style.inheritables.color = style.inheritables.color == WHITE ? YELLOW : WHITE;
-            button->updateStyle(style);
-        }
-
         root->update();
         BeginDrawing();
         root->render();
