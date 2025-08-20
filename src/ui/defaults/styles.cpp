@@ -38,5 +38,15 @@ ui::style::Style buttonStyles(ui::style::Theme theme) {
     return style;
 }
 
+ui::style::Style imageStyles() {
+    ui::style::Style style;
+
+    auto &props = style.drawableContentProps.emplace();
+    props.objectFit = ui::style::ObjectFit::Fill;
+    props.objectPosition = ui::style::ObjectPositionCenter{};
+
+    return style;
+}
+
 } // namespace defaults
 } // namespace ui

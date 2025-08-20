@@ -6,33 +6,43 @@ namespace ui {
 namespace defaults {
 
 ui::style::Layout elementLayout() {
-  ui::style::Layout layout;
+    ui::style::Layout layout;
 
-  layout.boxSizing = ui::style::BoxSizing::ContentBox;
+    layout.boxSizing = ui::style::BoxSizing::ContentBox;
 
-  return layout;
+    return layout;
 }
 
-ui::style::Layout rootLayout(const Vector2& windowSize) {
-  ui::style::Layout layout;
-  auto& size = layout.size.emplace();
+ui::style::Layout rootLayout(const Vector2 &windowSize) {
+    ui::style::Layout layout;
+    auto &size = layout.size.emplace();
 
-  size.width = utils::Value<int>(windowSize.x);
-  size.height = utils::Value<int>(windowSize.y);
+    size.width = utils::Value<int>(windowSize.x);
+    size.height = utils::Value<int>(windowSize.y);
 
-  return layout;
+    return layout;
 }
 
 ui::style::Layout buttonLayout() {
-  ui::style::Layout layout;
+    ui::style::Layout layout;
 
-  auto& spacing = layout.spacing.emplace();
-  spacing.paddingHorizontal = utils::Value(10);
-  spacing.paddingVertical = utils::Value(5);
-  spacing.border = 2;
+    auto &spacing = layout.spacing.emplace();
+    spacing.paddingHorizontal = utils::Value(10);
+    spacing.paddingVertical = utils::Value(5);
+    spacing.border = 2;
 
-  return layout;
+    return layout;
 }
 
-}  // namespace defaults
-}  // namespace ui
+ui::style::Layout imageLayout(const Vector2 &imageSize) {
+    ui::style::Layout layout;
+    auto &size = layout.size.emplace();
+
+    size.width = utils::Value<int>(imageSize.x);
+    size.height = utils::Value<int>(imageSize.y);
+
+    return layout;
+}
+
+} // namespace defaults
+} // namespace ui

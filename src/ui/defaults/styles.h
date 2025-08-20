@@ -9,6 +9,7 @@ namespace defaults {
 ui::style::Style elementStyles(ui::style::Theme theme);
 ui::style::Style rootStyles(ui::style::Theme theme);
 ui::style::Style buttonStyles(ui::style::Theme theme);
+ui::style::Style imageStyles();
 
 }  // namespace styles
 }  // namespace ui
