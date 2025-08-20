@@ -7,28 +7,30 @@ namespace ui {
 namespace element {
 
 class Root : public Element {
-  YGConfigRef _config;
-  bool _ok = false;
-  bool _dirty = true; // should calculate layout at least once
+    YGConfigRef _config;
+    bool _finalized = false;
+    bool _dirtyLayout = true;          // should calculate layout at least once
 
-void propagatePreferredTheme();
+    void calculateLayout();
+    void propagateStyles();
+    void propagatePreferredTheme();
 
-  void onDirtyFlagTriggered() override;
-  void onPreferredThemeChanged(ui::style::Theme theme) override;
+  private:
+    void onLayoutDirtyFlagTriggered() override;
+    void onPreferredThemeChanged(ui::style::Theme theme) override;
 
- public:
-  Root(const Vector2& windowSize);
-  ~Root();
-  
-  void render() override;
+  public:
+    Root(const Vector2 &windowSize);
+    ~Root();
 
-  bool shouldRecalculateLayout() const;
+    // check for styles and layout update
+    void update();
 
-  // Construct UI tree
-  void finalize();
+    void render() override;
 
-  void calculateLayout();
+    // Construct UI tree
+    void finalize();
 };
 
-}  // namespace element
-}  // namespace ui
+} // namespace element
+} // namespace ui

@@ -5,37 +5,38 @@ namespace ui {
 namespace defaults {
 
 ui::style::Style elementStyles(ui::style::Theme theme) {
-  ui::style::Style style;
-
-  style.color = ui::style::Inherit{};
-
-  return style;
+    ui::style::Style style;
+    return style;
 }
 
 ui::style::Style rootStyles(ui::style::Theme theme) {
-  ui::style::Style style;
+    ui::style::Style style;
 
-  style.color = theme == ui::style::Theme::Dark ? WHITE : BLACK;
-  style.backgroundColor = theme == ui::style::Theme::Dark ? BLACK : WHITE;
+    style.inheritables.color = theme == ui::style::Theme::Dark ? WHITE : BLACK;
+    style.inheritables.fontSize = 16;
+    style.inheritables.fontFamily = std::vector<std::string>();
+    style.inheritables.letterSpacing = 0;
 
-  return style;
+    style.backgroundColor = theme == ui::style::Theme::Dark ? BLACK : WHITE;
+
+    return style;
 }
 
 ui::style::Style buttonStyles(ui::style::Theme theme) {
-  ui::style::Style style;
+    ui::style::Style style;
 
-  switch (theme) {
+    switch (theme) {
     case ui::style::Theme::Dark: {
-      style.backgroundColor = DARKPURPLE;
+        style.backgroundColor = DARKPURPLE;
     } break;
     case ui::style::Theme::Light: {
-      style.backgroundColor = LIGHTGRAY;
-      style.borderColor = GRAY;
+        style.backgroundColor = LIGHTGRAY;
+        style.borderColor = GRAY;
     } break;
-  }
+    }
 
-  return style;
+    return style;
 }
 
-}  // namespace defaults
-}  // namespace ui
+} // namespace defaults
+} // namespace ui

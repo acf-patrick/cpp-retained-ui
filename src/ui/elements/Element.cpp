@@ -1,6 +1,7 @@
 #include "./Element.h"
 
 #include "../../utils/functions.h"
+#include "../../utils/operators.h"
 #include "../defaults.h"
 
 #include <yoga/YGNodeLayout.h>
@@ -16,7 +17,7 @@ namespace element {
 unsigned int Element::nextId = 0;
 
 Element::Element(const std::string &name)
-    : _name(name), _preferredTheme(ui::style::Theme::Dark) {
+    : _preferredTheme(ui::style::Theme::Dark), _name(name), _dirtyCachedInheritableProps(true) {
     _id = nextId++;
     _absolutePosition = {.x = 0.0, .y = 0.0};
 
@@ -39,14 +40,47 @@ bool Element::isNotDisplayed() const {
 
 void Element::onChildAppended(std::shared_ptr<Element>) { /* Do nothing */ }
 
-void Element::onDirtyFlagTriggered() { /* Do nothing */ }
+void Element::onLayoutDirtyFlagTriggered() { /* Do nothing */ }
 
-void Element::onPreferredThemeChanged(ui::style::Theme theme) { /* Do nothing */
+void Element::onStyleDirtyFlagTriggered() { /* Do nothing */ }
+
+void Element::onPreferredThemeChanged(ui::style::Theme theme) { /* Do nothing */ }
+
+void Element::markInheritableStylesAsDirty() {
+    // walk up the tree
+    for (auto parent = _parent.lock(); parent; parent = parent->getParent()) {
+        if (!parent->_dirtyCachedInheritableProps) {
+            parent->_dirtyCachedInheritableProps = true;
+            parent->onStyleDirtyFlagTriggered();
+        }
+    }
+
+    // notify children
+    std::queue<Element *> queue;
+    queue.push(this);
+    std::unordered_set<unsigned int> visitedIds;
+
+    while (!queue.empty()) {
+        auto e = queue.front();
+        queue.pop();
+
+        if (visitedIds.contains(e->getId()))
+            continue;
+
+        if (!e->_dirtyCachedInheritableProps) {
+            e->_dirtyCachedInheritableProps = true;
+            e->onStyleDirtyFlagTriggered();
+
+            for (auto child : e->_children)
+                queue.push(child.get());
+        }
+    }
 }
 
-void Element::markAsDirty() {
+void Element::markLayoutAsDirty() {
+    // notify parent for layout recomputation
     for (auto parent = _parent.lock(); parent; parent = parent->getParent())
-        parent->onDirtyFlagTriggered();
+        parent->onLayoutDirtyFlagTriggered();
 }
 
 void Element::appendChild(std::shared_ptr<Element> child) {
@@ -113,37 +147,6 @@ style::Layout Element::getLayout() const {
     return _layout;
 }
 
-void Element::triggerStyleColorChange(const ui::style::ColorProperty &color) {
-    if (ui::style::helper::isColorInherited(color)) {
-        if (auto parent = getParent())
-            if (auto parentColor = parent->_cachedColor)
-                _cachedColor = *parentColor;
-
-        return;
-    }
-
-    _cachedColor = std::get<Color>(color);
-
-    std::queue<Element *> queue;
-    std::unordered_set<unsigned int> visitedIds;
-    queue.push(this);
-
-    while (!queue.empty()) {
-        auto e = queue.front();
-        queue.pop();
-
-        if (visitedIds.contains(e->_id))
-            continue;
-
-        if (ui::style::helper::isColorInherited(e->_style.color) || e == this) {
-            e->_cachedColor = _cachedColor;
-
-            for (auto child : e->_children)
-                queue.push(child.get());
-        }
-    }
-}
-
 void Element::updateAbsolutePosition() {
     if (auto parent = _parent.lock()) {
         _absolutePosition.x =
@@ -154,8 +157,9 @@ void Element::updateAbsolutePosition() {
 }
 
 void Element::updateStyle(const style::Style &style) {
-    if (_style.color != style.color) {
-        triggerStyleColorChange(style.color);
+    if (style.inheritables != _style.inheritables) {
+        _cachedInheritableProps = style.inheritables;
+        markInheritableStylesAsDirty();
     }
 
     _style = style;
@@ -165,39 +169,31 @@ void Element::updateLayout(const style::Layout &layout) {
     if (_layout == layout)
         return;
 
-    if (auto flex = layout.flex) {
+    if (auto flex = layout.flex)
         updateFlex(*flex);
-    }
 
-    if (auto size = layout.size) {
+    if (auto size = layout.size)
         updateSize(*size);
-    }
 
-    if (auto spacing = layout.spacing) {
+    if (auto spacing = layout.spacing)
         updateSpacing(*spacing);
-    }
 
-    if (auto position = layout.position) {
+    if (auto position = layout.position)
         updatePosition(*position);
-    }
 
-    if (auto position = layout.positionType) {
+    if (auto position = layout.positionType)
         updatePositionType(*position);
-    }
 
-    if (auto display = layout.display) {
+    if (auto display = layout.display)
         updateDisplay(*display);
-    }
 
-    if (auto overflow = layout.overflow) {
+    if (auto overflow = layout.overflow)
         updateOverflow(*overflow);
-    }
 
-    if (auto boxSizing = layout.boxSizing) {
+    if (auto boxSizing = layout.boxSizing)
         updateBoxSizing(*boxSizing);
-    }
 
-    markAsDirty();
+    markLayoutAsDirty();
     _layout = layout;
 }
 
@@ -578,9 +574,14 @@ void Element::setPreferredTheme(ui::style::Theme theme) {
 void Element::setParent(std::shared_ptr<Element> parent) {
     _parent = parent;
     setPreferredTheme(parent->getPreferredTheme());
+}
 
-    if (!_cachedColor.has_value())
-        _cachedColor = parent->_cachedColor;
+void Element::updateCachedInheritablePropsFrom(std::shared_ptr<Element> element) {
+    if (!element)
+        return;
+
+    const auto &newProps = element->_cachedInheritableProps;
+    _cachedInheritableProps.updateInheritedFields(_style.inheritables, newProps);
 }
 
 std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,

@@ -1,30 +1,74 @@
 #include "./Text.h"
+#include "../../repository/FontRepository.h"
+#include <iostream>
 #include <raylib.h>
 #include <yoga/YGNodeLayout.h>
-#include <iostream>
 
 namespace ui {
 namespace element {
 
-Text::Text(const std::string& text) : Element("Text") {
-  setText(text);
-}
+Text::Text(const std::string &text) : Element("Text"), _text(text) {}
 
-void Text::setText(const std::string& text) {
-  _text = text;
-  const auto width = MeasureText(text.c_str(), 16);
-  YGNodeStyleSetWidth(_yogaNode, width);
-  YGNodeStyleSetHeight(_yogaNode, 16);
+void Text::setText(const std::string &text) {
+    _text = text;
+    const auto fontSize = _cachedInheritableProps.fontSize.unwrap();
+    Vector2 textSize;
+
+    if (auto font = getUsedFont())
+        textSize = MeasureTextEx(*font, text.c_str(), fontSize, _cachedInheritableProps.letterSpacing.unwrap());
+    else {
+        textSize.x = MeasureText(text.c_str(), fontSize);
+        textSize.y = fontSize;
+    }
+
+    auto layout = getLayout();
+    {
+        auto &size = layout.size.emplace();
+        size.width = utils::Value<int>(textSize.x);
+        size.height = utils::Value<int>(textSize.y);
+    }
+    updateLayout(layout);
 }
 
 void Text::render() {
-  auto bb = getBoundingRect();
-  DrawText(_text.c_str(), bb.x, bb.y, 16, WHITE);
+    static bool firstRender = true;
+    if (firstRender) {
+        firstRender = false;
+        setText(_text);
+    }
+
+    auto bb = getBoundingRect();
+    const auto fontSize = _cachedInheritableProps.fontSize.unwrap();
+    const auto color = _cachedInheritableProps.color.unwrap();
+
+    if (auto font = getUsedFont())
+        DrawTextEx(*font, _text.c_str(), {bb.x, bb.y}, fontSize, _cachedInheritableProps.letterSpacing.unwrap(), color);
+    else
+        DrawText(_text.c_str(), bb.x, bb.y, fontSize, color);
+}
+
+std::optional<Font> Text::getUsedFont() const {
+    auto fonts = repository::FontRepository::Get();
+    if (!fonts) {
+        throw std::logic_error("[Text] Font repository not initialized.");
+    }
+
+    const auto fontFamily = _cachedInheritableProps.fontFamily.unwrap();
+    std::optional<Font> font;
+
+    for (const auto &fontName : fontFamily) {
+        if (auto registeredFont = fonts->get(fontName)) {
+            font = registeredFont;
+            break;
+        }
+    }
+
+    return font;
 }
 
 void Text::onChildAppended(std::shared_ptr<Element>) {
-  throw std::logic_error("Text element can only be used as leaf node.");
+    throw std::logic_error("[Text] Text element can only be used as leaf node.");
 }
 
-}  // namespace element
-}  // namespace ui
+} // namespace element
+} // namespace ui
