@@ -1,7 +1,9 @@
 #include "./Image.h"
 #include "../defaults.h"
+#include "../icons.h"
 #include "../repository/TextureRepository.h"
 #include "../utils/debug.h"
+
 #include <iostream>
 
 namespace ui {
@@ -24,6 +26,11 @@ Image::Image(const std::string &src, const std::string &alt) : Element("Image"),
         updateLayout(ui::defaults::imageLayout({(float)texture->width, (float)texture->height}));
 }
 
+Image::~Image() {
+    if (_imageIcon)
+        UnloadTexture(*_imageIcon);
+}
+
 void Image::onChildAppended(std::shared_ptr<Element>) {
     throw std::logic_error("[Image] Image elemenet can only be used as leaf node.");
 }
@@ -32,7 +39,9 @@ void Image::loadAltImageIconTexture() {
     if (_imageIcon)
         return;
 
-    LoadImageFromMemory(".png", )
+    auto icon = LoadImageFromMemory(".png", ui::icon::ImagePng, ui::icon::ImagePngLen);
+    _imageIcon = LoadTextureFromImage(icon);
+    UnloadImage(icon);
 }
 
 void Image::render() {
@@ -104,8 +113,12 @@ void Image::render() {
 }
 
 void Image::drawAlt() {
+    loadAltImageIconTexture();
     const auto bb = getBoundingRect();
-    DrawText(_alt.c_str(), bb.x, bb.y, 16, _altColor);
+    const int margin = 8;
+
+    DrawTexture(*_imageIcon, bb.x, bb.y, WHITE);
+    DrawText(_alt.c_str(), bb.x + _imageIcon->width + margin, bb.y, 16, _altColor);
 }
 
 void Image::repositionDrawingRectangles(Rectangle &src, Rectangle &dest, const float scale) {

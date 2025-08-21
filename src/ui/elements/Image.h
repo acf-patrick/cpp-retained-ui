@@ -1,7 +1,7 @@
 #pragma once
 
-#include <raylib.h>
 #include <optional>
+#include <raylib.h>
 #include <string>
 
 #include "./Element.h"
@@ -32,6 +32,7 @@ class Image : public Element {
 
   public:
     Image(const std::string &src, const std::string &alt = "");
+    ~Image();
 
     std::string getAlt() const;
     void setAlt(const std::string &alt);
