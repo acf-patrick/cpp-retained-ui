@@ -2,38 +2,40 @@
 
 namespace fs = std::filesystem;
 
-repository::TextureRepository* repository::TextureRepository::instance = nullptr;
+repository::TextureRepository *repository::TextureRepository::instance = nullptr;
 
 namespace repository {
 
 TextureRepository::TextureRepository() {
-  instance = this;
+    instance = this;
 }
 
 TextureRepository::~TextureRepository() {
-  for (auto& [handle, texture] : _textures) {
-    UnloadTexture(texture);
-  }
-  instance = nullptr;
+    for (auto &[handle, texture] : _textures) {
+        UnloadTexture(texture);
+    }
+    instance = nullptr;
 }
 
-TextureRepository* TextureRepository::Get() {
-  if (!instance) instance = new TextureRepository;
+TextureRepository *TextureRepository::Get() {
+    if (!instance)
+        instance = new TextureRepository;
 
-  return instance;
+    return instance;
 }
 
-std::optional<Texture2D> TextureRepository::get(const std::string& handle) {
-  if (_textures.count(handle) > 0)
-    return std::make_optional<Texture>(_textures[handle]);
-  return std::nullopt;
+std::optional<Texture2D> TextureRepository::get(const std::string &handle) {
+    if (_textures.count(handle) > 0)
+        return std::make_optional<Texture>(_textures[handle]);
+    return std::nullopt;
 }
 
-bool TextureRepository::load(const std::string& handle, const fs::path& resource) {
-  if (!fs::exists(resource) || !fs::is_regular_file(resource))
-    return false;
-  _textures[handle] = LoadTexture(resource.string().c_str());
-  return true;
+bool TextureRepository::load(const std::string &handle, const fs::path &resource) {
+    if (!fs::exists(resource) || !fs::is_regular_file(resource))
+        return false;
+    auto texture = LoadTexture(resource.string().c_str());
+    _textures[handle] = texture;
+    return true;
 }
 
-}  // namespace repository
+} // namespace repository

@@ -31,7 +31,7 @@ int main() {
     }
 
     auto button = std::make_shared<ui::element::Button>();
-    ui::element::Element::AppendChild(view, button);
+    // ui::element::Element::AppendChild(view, button);
 
     {
         auto style = button->getStyle();
@@ -47,6 +47,38 @@ int main() {
     ui::element::Element::AppendChild(button, text);
 
     repository::FontRepository::Get()->load("roboto", "Roboto-Regular.ttf");
+
+    auto imgContainer = std::make_shared<ui::element::View>();
+    ui::element::Element::AppendChild(view, imgContainer);
+    {
+        auto layout = imgContainer->getLayout();
+        layout.spacing.emplace().border = 3;
+        auto &size = layout.size.emplace();
+        size.width = utils::Value(480);
+        size.height = utils::Value(300);
+        imgContainer->updateLayout(layout);
+
+        auto style = imgContainer->getStyle();
+        style.borderColor = WHITE;
+        imgContainer->updateStyle(style);
+    }
+
+    auto image = std::make_shared<ui::element::Image>("cat.png", "cat");
+    ui::element::Element::AppendChild(imgContainer, image);
+    {
+        auto style = image->getStyle();
+        auto &props = *style.drawableContentProps;
+        props.objectFit = ui::style::ObjectFit::ScaleDown;
+        props.objectPosition = ui::style::ObjectPositionCenter{};
+        image->updateStyle(style);
+
+        auto layout = image->getLayout();
+        auto &size = layout.size.emplace();
+        size.width = utils::Ratio(1.0);
+        size.height = utils::Ratio(1.0);
+
+        image->updateLayout(layout);
+    }
 
     root->finalize();
     while (!WindowShouldClose()) {

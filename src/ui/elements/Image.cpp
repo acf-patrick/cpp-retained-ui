@@ -1,15 +1,13 @@
 #include "./Image.h"
 #include "../defaults.h"
 #include "../repository/TextureRepository.h"
-
-#include <filesystem>
-
-namespace fs = std::filesystem;
+#include "../utils/debug.h"
+#include <iostream>
 
 namespace ui {
 namespace element {
 
-Image::Image(const std::string &src, const std::string &alt) : Element("Image"), _src(src), _alt(alt) {
+Image::Image(const std::string &src, const std::string &alt) : Element("Image"), _src(src), _alt(alt), _altColor(Color{.r = 0x8A, .g = 0x8A, .b = 0x8A, .a = 0xff}) {
     auto textures = repository::TextureRepository::Get();
     if (!textures)
         throw std::logic_error("[Image] Texture repository not initialized.");
@@ -30,6 +28,13 @@ void Image::onChildAppended(std::shared_ptr<Element>) {
     throw std::logic_error("[Image] Image elemenet can only be used as leaf node.");
 }
 
+void Image::loadAltImageIconTexture() {
+    if (_imageIcon)
+        return;
+
+    LoadImageFromMemory(".png", )
+}
+
 void Image::render() {
     auto textures = repository::TextureRepository::Get();
     if (!textures)
@@ -37,6 +42,7 @@ void Image::render() {
 
     auto optTexture = textures->get(_src);
     if (!optTexture) {
+        loadAltImageIconTexture();
         drawAlt();
         return;
     }
@@ -50,105 +56,120 @@ void Image::render() {
                       .y = 0,
                       .width = (float)texture.width,
                       .height = (float)texture.height},
-                  dst = {0};
+                  dest = {0};
         const auto &props = *_style.drawableContentProps;
 
         switch (props.objectFit) {
         case ui::style::ObjectFit::Fill:
-            dst = bb;
+            dest = bb;
             break;
 
         case ui::style::ObjectFit::Cover: {
             const auto scale = std::max(bb.width / texture.width, bb.height / texture.height);
-            dst = {
-                .x = 0,
-                .y = 0,
-                .width = scale * texture.width,
-                .height = scale * texture.height};
+            dest.width = scale * texture.width;
+            dest.height = scale * texture.height;
+            repositionDrawingRectangles(src, dest, scale);
         } break;
 
         case ui::style::ObjectFit::Contain: {
             const auto scale = std::min(bb.width / texture.width, bb.height / texture.height);
-            dst = {
-                .x = 0,
-                .y = 0,
-                .width = scale * texture.width,
-                .height = scale * texture.height};
+            dest.width = scale * texture.width;
+            dest.height = scale * texture.height;
+            // std::cout << "scale : " << scale << std::endl;
+            repositionDrawingRectangles(src, dest, scale);
         } break;
 
-        case ui::style::ObjectFit::None: {
-            dst = src;
-
-            repositionDrawingRectangle(src);
-        } break;
+        case ui::style::ObjectFit::None:
+            dest = src;
+            repositionDrawingRectangles(src, dest, 1.0);
+            break;
 
         case ui::style::ObjectFit::ScaleDown: {
+            const auto scale = std::min(bb.width / texture.width, bb.height / texture.height);
+            if (scale >= 1.0) { // use NONE
+                dest = src;
+                repositionDrawingRectangles(src, dest, 1.0);
+            } else { // use CONTAIN
+                dest.width = scale * texture.width;
+                dest.height = scale * texture.height;
+                repositionDrawingRectangles(src, dest, scale);
+            }
         } break;
         }
 
-        DrawTexturePro(texture, src, dst, {0}, 0.0, WHITE);
+        DrawTexturePro(texture, src, dest, {0}, 0.0, WHITE);
     } else {
         DrawTexture(texture, bb.x, bb.y, WHITE);
     }
 }
 
 void Image::drawAlt() {
-    // TODO
+    const auto bb = getBoundingRect();
+    DrawText(_alt.c_str(), bb.x, bb.y, 16, _altColor);
 }
 
 void Image::repositionDrawingRectangles(Rectangle &src, Rectangle &dest, const float scale) {
     const auto bb = getBoundingRect();
+    Rectangle positionedSrc = {0};
     const auto &position = _style.drawableContentProps->objectPosition;
 
     if (std::holds_alternative<ui::style::ObjectPositionCenter>(position)) {
-        Rectangle positionedSrc = {
-            .x = bb.x + 0.5 * (bb.width - dest.width),
-            .y = bb.y + 0.5 * (bb.height - dest.height),
+        positionedSrc = {
+            .x = float(bb.x + 0.5 * (bb.width - dest.width)),
+            .y = float(bb.y + 0.5 * (bb.height - dest.height)),
             .width = dest.width,
             .height = dest.height};
+    } else {
+        if (auto edges = std::get_if<ui::style::ObjectPositionEdge>(&position)) {
+            switch (edges->x) {
+            case ui::style::Edge::Center:
+                positionedSrc.x = bb.x + 0.5 * (bb.width - dest.width);
+                break;
 
-        auto visible = GetCollisionRec(positionedSrc, bb);
-        src = {(visible.x - positionedSrc.x) / scale,
-               (visible.y - positionedSrc.y) / scale,
-               visible.width / scale,
-               visible.height / scale};
+            case ui::style::Edge::Left:
+                positionedSrc.x = bb.x;
+                break;
 
-        dest = visible;
-        dest.x -= bb.x;
-        dest.y -= bb.y;
+            case ui::style::Edge::Right:
+                positionedSrc.x = bb.x + bb.width - dest.width;
+                break;
+            default:;
+            }
 
-        return;
-    }
+            switch (edges->y) {
+            case ui::style::Edge::Center:
+                positionedSrc.y = bb.y + 0.5 * (bb.height - dest.height);
+                break;
 
-    if (auto edges = std::get_if<ui::style::ObjectPositionEdge>(&position)) {
-        switch (edges->x) {
-        case ui::style::Edge::Left:
+            case ui::style::Edge::Top:
+                positionedSrc.y = bb.y;
+                break;
 
-            break;
-        case ui::style::Edge::Right:
-            break;
-        default:;
+            case ui::style::Edge::Bottom:
+                positionedSrc.y = bb.y + bb.height - dest.height;
+                break;
+            default:;
+            }
+        } else if (auto ratio = std::get_if<ui::style::ObjectPositionRatio>(&position)) {
+            positionedSrc.x = bb.x + ratio->x * bb.width;
+            positionedSrc.y = bb.y + ratio->y * bb.height;
+        } else if (auto positions = std::get_if<ui::style::ObjectPositionPosition>(&position)) {
+            positionedSrc.x = bb.x + positions->x;
+            positionedSrc.y = bb.y + positions->y;
         }
 
-        switch (edges->y) {
-        case ui::style::Edge::Top:
-            break;
-
-        case ui::style::Edge::Bottom:
-            break;
-        default:;
-        }
-
-        return;
+        positionedSrc.width = dest.width;
+        positionedSrc.height = dest.height;
     }
 
-    if (auto ratio = std::get_if<ui::style::ObjectPositionRatio>(&position)) {
-        return;
-    }
+    dest = GetCollisionRec(positionedSrc, bb);
+    src = {(dest.x - positionedSrc.x) / scale,
+           (dest.y - positionedSrc.y) / scale,
+           dest.width / scale,
+           dest.height / scale};
 
-    if (auto positions = std::get_if<ui::style::ObjectPositionPosition>(&position)) {
-        return;
-    }
+    // std::cout << "dest : " << dest.x << ", " << dest.y << ", " << dest.width << ", " << dest.height << std::endl;
+    // std::cout << "src : " << src.x << ", " << src.y << ", " << src.width << ", " << src.height << std::endl;
 }
 
 void Image::setSource(const std::string &src) { _src = src; }

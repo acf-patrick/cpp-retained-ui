@@ -5,6 +5,7 @@
 namespace utils {
 float clampRatio(float ratio);
 
+// Draw rectangle by drawing four edges individualy
 void drawRectangle(const Rectangle& rect,
                    float top,
                    float bottom,

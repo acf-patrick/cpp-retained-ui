@@ -7,7 +7,8 @@ enum class Edge {
     Top,
     Bottom,
     Left,
-    Right
+    Right,
+    Center
 };
 
 }

@@ -479,18 +479,25 @@ void Element::drawBorder(const Rectangle &bb) {
         if (auto radius = _style.borderRadius) {
             // TODO : make border radius
             // work on non-even borders
-            if (auto bg = _style.borderColor) {
+            if (auto borderColor = _style.borderColor) {
+                const float halfBorder = *border <= 1.0 ? *border : (*border / 2);
+                Rectangle rect = {
+                    .x = bb.x - halfBorder,
+                    .y = bb.y - halfBorder,
+                    .width = bb.width + halfBorder,
+                    .height = bb.height + halfBorder};
+
                 if (auto ratio = std::get_if<utils::Ratio>(&*radius)) {
                     auto radius = utils::clampRatio(ratio->ratio);
-                    DrawRectangleRoundedLines(bb, radius, getSegmentCount(radius),
-                                              *border, *bg);
+                    DrawRectangleRoundedLines(rect, radius, getSegmentCount(radius),
+                                              *border, *borderColor);
                 }
 
                 if (auto value = std::get_if<utils::Value<float>>(&*radius)) {
                     auto radius =
-                        utils::clampRatio(value->value / std::min(bb.width, bb.height));
-                    DrawRectangleRoundedLines(bb, radius, getSegmentCount(radius),
-                                              *border, *bg);
+                        utils::clampRatio(value->value / std::min(rect.width, rect.height));
+                    DrawRectangleRoundedLines(rect, radius, getSegmentCount(radius),
+                                              *border, *borderColor);
                 }
 
                 drawRoundedBorders = true;
@@ -539,12 +546,28 @@ void Element::drawBorder(const Rectangle &bb) {
                 finalBorders.right = *border;
         }
 
-        utils::drawRectangle(bb, finalBorders.top, finalBorders.bottom,
-                             finalBorders.left, finalBorders.right, finalColors.top,
-                             finalColors.bottom, finalColors.left,
-                             finalColors.right);
+        if (finalBorders.bottom == finalBorders.top &&
+            finalBorders.left == finalBorders.top &&
+            finalBorders.left == finalBorders.right &&
+            finalColors.bottom == finalColors.top &&
+            finalColors.left == finalColors.top &&
+            finalColors.left == finalColors.right) {
+
+            const float border = finalBorders.left;
+            const float halfBorder = border <= 1.0 ? border : (border / 2);
+            Rectangle rect = {
+                .x = bb.x - halfBorder,
+                .y = bb.y - halfBorder,
+                .width = bb.width + halfBorder,
+                .height = bb.height + halfBorder};
+            DrawRectangleLinesEx(rect, border, finalColors.top);
+        } else
+            utils::drawRectangle(bb, finalBorders.top, finalBorders.bottom,
+                                 finalBorders.left, finalBorders.right, finalColors.top,
+                                 finalColors.bottom, finalColors.left,
+                                 finalColors.right);
     }
-}
+} // namespace element
 
 void Element::render() {
     const auto bb = getBoundingRect();

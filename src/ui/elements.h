@@ -7,3 +7,4 @@
 #include "./elements/Stack.h"
 #include "./elements/Text.h"
 #include "./elements/View.h"
+#include "./elements/Image.h"
