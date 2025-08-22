@@ -1,7 +1,7 @@
 #include "./Image.h"
 #include "../defaults.h"
 #include "../icons.h"
-#include "../repository/TextureRepository.h"
+#include "../core/repository/TextureRepository.h"
 #include "../utils/debug.h"
 
 #include <iostream>

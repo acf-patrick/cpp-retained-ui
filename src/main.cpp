@@ -63,7 +63,7 @@ int main() {
         imgContainer->updateStyle(style);
     }
 
-    auto image = std::make_shared<ui::element::Image>("assets/images/cat.pg", "cat");
+    auto image = std::make_shared<ui::element::Image>("assets/images/cat.png", "cat");
     ui::element::Element::AppendChild(imgContainer, image);
     {
         auto style = image->getStyle();
@@ -84,6 +84,7 @@ int main() {
     while (!WindowShouldClose()) {
         root->update();
         BeginDrawing();
+        std::shared_ptr<void> test;
         root->render();
         EndDrawing();
     }

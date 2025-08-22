@@ -1,7 +1,0 @@
-file(GLOB REPOSITORY_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-
-add_library(REPOSITORY STATIC ${REPOSITORY_SOURCES})
-
-target_link_libraries(REPOSITORY PRIVATE raylib)
-
-target_include_directories(REPOSITORY PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

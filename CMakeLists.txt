@@ -11,7 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(RAYLIB_VERSION 5.0)
 set(UI "src/ui")
 set(UTILS "src/utils")
-set(REPOSITORY "src/repository")
+set(CORE "src/core")
 
 set(YOGA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(YOGA_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
@@ -32,7 +32,7 @@ FetchContent_MakeAvailable(raylib)
 
 add_subdirectory(${UI})
 add_subdirectory(${UTILS})
-add_subdirectory(${REPOSITORY})
+add_subdirectory(${CORE})
 add_executable(RetainedUI src/main.cpp)
 
 target_compile_features(RetainedUI PRIVATE cxx_std_23)
@@ -41,4 +41,4 @@ target_include_directories(RetainedUI PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ex
 
 set_target_properties(raylib PROPERTIES BUILD_SHARED_LIBRS ON)
 
-target_link_libraries(RetainedUI PRIVATE raylib yogacore UI UTILS REPOSITORY)
+target_link_libraries(RetainedUI PRIVATE raylib yogacore UI UTILS CORE)

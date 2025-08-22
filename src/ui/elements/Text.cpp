@@ -1,6 +1,6 @@
 #include "./Text.h"
-#include "../../repository/FontRepository.h"
-#include <iostream>
+#include "../../core/repository/FontRepository.h"
+
 #include <raylib.h>
 #include <yoga/YGNodeLayout.h>
 
