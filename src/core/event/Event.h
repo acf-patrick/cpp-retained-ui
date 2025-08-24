@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <variant>
 
@@ -38,6 +39,8 @@ class Event {
         return std::nullopt;
     }
 
+    std::string getName() const;
+
   private:
     using EventData = std::variant<
         event::data::MouseDown,
@@ -52,6 +55,8 @@ class Event {
         event::data::MouseWheel,
         event::data::KeyDown,
         event::data::KeyUp>;
+
+    static const std::string subtypeNames[];
 
     template <typename T>
     static constexpr bool isEventSubtype = IsInVariant<T, EventData>::value;

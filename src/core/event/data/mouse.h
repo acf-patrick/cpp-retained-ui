@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../ui/elements/Element.h"
+#include <elements/Element.h>
 
 #include <raylib.h>
 #include <memory>
