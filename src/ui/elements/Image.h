@@ -13,7 +13,7 @@ class Image : public Element {
     std::string _src; // source image
     std::string _alt; // text to show if image file doesn't exist
     const Color _altColor;
-    std::optional<Texture2D> _imageIcon;
+    std::optional<Texture2D> _iconTexture;
 
   private:
     // Draw alternative text

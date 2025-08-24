@@ -1,21 +1,62 @@
 #pragma once
 
-#include <variant>
+#include "./data.h"
+
+#include <optional>
+#include <stdexcept>
 #include <type_traits>
+#include <variant>
+
+template <typename T, typename OtherType>
+struct IsInVariant : std::false_type {};
+
+template <typename T, typename... Types>
+struct IsInVariant<T, std::variant<Types...>> : std::disjunction<std::is_same<T, Types>...> {};
 
 namespace event {
 
 class Event {
-    // template<typename T,
-public:
+  public:
+    template <typename T>
+    bool isOfType() const {
+        return std::holds_alternative<T>(_data);
+    }
 
-private:
-    using EventData = std::variant<>;
+    template <typename T>
+    T unwrapData() const {
+        if (auto data = std::get_if<T>(&_data))
+            return *data;
 
-    template <typename T, typename Variant>
-    struct is_variant_member;
+        throw std::logic_error("[Event] unwrapping wrong type");
+    }
 
+    template <typename T>
+    std::optional<T> getIf() const {
+        if (auto data = std::get_if<T>(&_data))
+            return *data;
 
+        return std::nullopt;
+    }
+
+  private:
+    using EventData = std::variant<
+        event::data::MouseDown,
+        event::data::MouseUp,
+        event::data::Click,
+        event::data::DoubleClick,
+        event::data::MouseMove,
+        event::data::MouseLeave,
+        event::data::MouseEnter,
+        event::data::MouseOut,
+        event::data::MouseOver,
+        event::data::MouseWheel,
+        event::data::KeyDown,
+        event::data::KeyUp>;
+
+    template <typename T>
+    static constexpr bool isEventSubtype = IsInVariant<T, EventData>::value;
+
+    EventData _data;
 };
 
-}
+} // namespace event

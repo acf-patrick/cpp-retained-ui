@@ -27,8 +27,8 @@ Image::Image(const std::string &src, const std::string &alt) : Element("Image"),
 }
 
 Image::~Image() {
-    if (_imageIcon)
-        UnloadTexture(*_imageIcon);
+    if (_iconTexture)
+        UnloadTexture(*_iconTexture);
 }
 
 void Image::onChildAppended(std::shared_ptr<Element>) {
@@ -36,11 +36,11 @@ void Image::onChildAppended(std::shared_ptr<Element>) {
 }
 
 void Image::loadAltImageIconTexture() {
-    if (_imageIcon)
+    if (_iconTexture)
         return;
 
     auto icon = LoadImageFromMemory(".png", ui::icon::ImagePng, ui::icon::ImagePngLen);
-    _imageIcon = LoadTextureFromImage(icon);
+    _iconTexture = LoadTextureFromImage(icon);
     UnloadImage(icon);
 }
 
@@ -117,8 +117,8 @@ void Image::drawAlt() {
     const auto bb = getBoundingRect();
     const int margin = 8;
 
-    DrawTexture(*_imageIcon, bb.x, bb.y, WHITE);
-    DrawText(_alt.c_str(), bb.x + _imageIcon->width + margin, bb.y, 16, _altColor);
+    DrawTexture(*_iconTexture, bb.x, bb.y, WHITE);
+    DrawText(_alt.c_str(), bb.x + _iconTexture->width + margin, bb.y, 16, _altColor);
 }
 
 void Image::repositionDrawingRectangles(Rectangle &src, Rectangle &dest, const float scale) {
