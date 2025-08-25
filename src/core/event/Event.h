@@ -2,11 +2,14 @@
 
 #include "./data.h"
 
+#include <elements/Element.h>
+
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <variant>
+#include <memory>
 
 template <typename T, typename OtherType>
 struct IsInVariant : std::false_type {};
@@ -39,6 +42,15 @@ class Event {
         return std::nullopt;
     }
 
+    // Stops bubbling further up the tree
+    void stopPropagation();
+
+    // Prevents other handlers on the same element from firing
+    void stopImmediatePropagation();
+
+    std::shared_ptr<ui::element::Element> getCurrentTarget() const;
+    std::shared_ptr<ui::element::Element> getTarget() const;
+
     std::string getName() const;
 
   private:
@@ -62,6 +74,8 @@ class Event {
     static constexpr bool isEventSubtype = IsInVariant<T, EventData>::value;
 
     EventData _data;
+    std::weak_ptr<ui::element::Element> _currentTarget;
+    std::weak_ptr<ui::element::Element> _target;
 };
 
 } // namespace event

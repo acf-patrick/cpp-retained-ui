@@ -10,11 +10,19 @@ const std::string event::Event::subtypeNames[] = {
     "MouseEnterEvent",
     "MouseOutEvent",
     "MouseOverEvent",
-    "MouseWheenEvent",
+    "MouseWheelEvent",
     "KeyDownEvent",
     "KeyUpEvent"};
 
 namespace event {
+
+std::shared_ptr<ui::element::Element> Event::getTarget() const {
+    return _target.lock();
+}
+
+std::shared_ptr<ui::element::Element> Event::getCurrentTarget() const {
+    return _currentTarget.lock();
+}
 
 std::string Event::getName() const {
     return subtypeNames[_data.index()];

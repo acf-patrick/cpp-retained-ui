@@ -56,6 +56,8 @@ void Image::render() {
         return;
     }
 
+    Element::render();
+
     auto texture = *optTexture;
     auto bb = getBoundingRect();
 
