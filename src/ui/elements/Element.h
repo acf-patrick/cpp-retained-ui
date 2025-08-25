@@ -110,6 +110,8 @@ class Element {
     // Might be invalid if called before layout calculation
     Rectangle getBoundingRect() const;
 
+    bool contains(const Vector2 &point) const;
+
     ui::style::Theme getPreferredTheme() const;
 
     // Append child to parent's children and set child's parent.

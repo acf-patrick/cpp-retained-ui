@@ -105,6 +105,11 @@ void Element::removeAllChildren() {
     _children.clear();
 }
 
+bool Element::contains(const Vector2& point) const {
+    const auto rect = getBoundingRect();
+    return CheckCollisionPointRec(point, rect);
+}
+
 Rectangle Element::getBoundingRect() const {
     Rectangle bb = {.x = _absolutePosition.x,
                     .y = _absolutePosition.y,
