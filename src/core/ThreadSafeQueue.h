@@ -9,4 +9,4 @@ class ThreadSafeQueue {
 
 public:
 
-}:
+};

@@ -36,8 +36,8 @@ struct MouseMove {
 };
 
 /*
-| Event        | Fires on element  | Fires on children?  | Bubbles?  |
-| ------------ | ----------------- | ------------------- | --------- |
+| Event        | Fires on element  | Fires on children?   | Bubbles?  |
+| ------------ | ----------------- | -------------------  | --------- |
 | `mouseover`  | ✅ yes            | ✅ yes              | ✅ yes    |
 | `mouseenter` | ✅ yes            | ❌ no               | ❌ no     |
 | `mouseout`   | ✅ yes            | ✅ yes              | ✅ yes    |
@@ -49,23 +49,22 @@ struct MouseLeave {
     std::shared_ptr<ui::element::Element> relatedTarget; // element mouse goes to
 };
 
-// Does bubble
 struct MouseEnter {
     Vector2 position;
     std::shared_ptr<ui::element::Element> relatedTarget; // element mouse came from
 };
 
-// Does bubble
 struct MouseOut {
     Vector2 position;
     std::shared_ptr<ui::element::Element> relatedTarget; // element mouse goes to
 };
 
-// Does bubble 
 struct MouseOver {
     Vector2 position;
     std::shared_ptr<ui::element::Element> relatedTarget; // element mouse came from
 };
+
+//////////////////////////////////////////////////////////////////////////
 
 struct MouseWheel {
     Vector2 position;
