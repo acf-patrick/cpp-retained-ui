@@ -105,7 +105,7 @@ void Element::removeAllChildren() {
     _children.clear();
 }
 
-bool Element::contains(const Vector2& point) const {
+bool Element::contains(const Vector2 &point) const {
     const auto rect = getBoundingRect();
     return CheckCollisionPointRec(point, rect);
 }
@@ -572,13 +572,17 @@ void Element::drawBorder(const Rectangle &bb) {
                                  finalColors.bottom, finalColors.left,
                                  finalColors.right);
     }
-} // namespace element
+}
 
 void Element::render() {
     const auto bb = getBoundingRect();
 
     drawBackground(bb);
     drawBorder(bb);
+}
+
+std::shared_ptr<ui::layer::Layer> Element::getLayer() const {
+    return _layer.lock();
 }
 
 int Element::getSegmentCount(float radius) const {

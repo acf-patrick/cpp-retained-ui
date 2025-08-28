@@ -12,6 +12,7 @@ Root::Root(const Vector2 &windowSize) : Element("Root") {
     _config = YGConfigNew();
     YGConfigSetUseWebDefaults(_config, true);
     _yogaNode = YGNodeNewWithConfig(_config);
+    
 
     updateLayout(ui::defaults::rootLayout(windowSize));
 }

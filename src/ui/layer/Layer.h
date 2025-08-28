@@ -1,24 +1,55 @@
 #pragma once
 
-#include <elements/Element.h>
-
 #include <raylib.h>
 
 #include <map>
 #include <memory>
 #include <vector>
 
-#include "./StackingContext.h"
+#include "./LayerContext.h"
 
 // forward declaration
 namespace ui {
 namespace element {
-class Root;
+class Element;
 }
-} // namespace ui
 
 namespace layer {
 
+class Layer {
+  public:
+    using LayerId = unsigned int;
+
+  private:
+    static LayerId nextId;
+
+    LayerId _id;
+    std::vector<std::shared_ptr<Layer>> _children;
+    std::weak_ptr<Layer> _parent;
+    RenderTexture2D _renderTexture;
+    LayerContext _context;
+    std::vector<std::shared_ptr<ui::element::Element>> _elements;
+
+  public:
+    Layer(const LayerContext& ctx, std::shared_ptr<Layer> parent = nullptr);
+    ~Layer();
+
+    void clear();
+    void render();
+
+    LayerId getId() const;
+
+    std::shared_ptr<Layer> getParent() const;
+    void addChild(std::shared_ptr<Layer> child);
+    void removeChild(std::shared_ptr<Layer> child);
+
+    void addElement(std::shared_ptr<ui::element::Element> element);
+    void removeElement(std::shared_ptr<ui::element::Element> element);
+
+    std::shared_ptr<ui::element::Element> hitTest(const Vector2 &point) const;
+};
+
+/*
 class LayerManager {
   public:
     class Layer {
@@ -62,5 +93,6 @@ class LayerManager {
 
     friend class ui::element::Root;
 };
-
+*/
 } // namespace layer
+} // namespace ui

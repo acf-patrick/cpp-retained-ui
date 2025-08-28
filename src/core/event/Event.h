@@ -21,6 +21,19 @@ namespace event {
 
 class Event {
   public:
+    template <typename EventType>
+    Event(EventType &&eventData) {
+        _data = eventData;
+        _stopPropagationFlag = false;
+        _stopImmediatePropagationFlag = false;
+    }
+
+    // Helper function for creating new event
+    template <typename EventType>
+    static std::shared_ptr<Event> New(EventType &&eventData) {
+        return std::make_shared<Event>(eventData);
+    }
+
     template <typename T>
     bool isOfType() const {
         return std::holds_alternative<T>(_data);
@@ -70,20 +83,6 @@ class Event {
 
     template <typename T>
     static constexpr bool isEventSubtype = IsInVariant<T, EventData>::value;
-
-    template <typename EventType>
-    Event(EventType &&eventData) {
-        static_assert(isEventSubtype<EventType> && "Provided data is not well-formed event type.");
-        _data = eventData;
-        _stopPropagationFlag = false;
-        _stopImmediatePropagationFlag = false;
-    }
-
-    // Helper function for creating new event
-    template <typename EventType>
-    static std::shared_ptr<Event> New(EventType &&eventData) {
-        return std::make_shared<Event>(eventData);
-    }
 
     void setCurrentTarget(std::shared_ptr<ui::element::Element> target);
     void setTarget(std::shared_ptr<ui::element::Element> target);
