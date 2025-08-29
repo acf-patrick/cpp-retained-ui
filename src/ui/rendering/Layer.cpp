@@ -9,26 +9,9 @@
 ui::layer::Layer::LayerId ui::layer::Layer::nextId = 0;
 
 namespace ui {
-namespace layer {
-/*
-LayerManager::~LayerManager() {
-    instance = nullptr;
-}
+namespace rendering {
 
-LayerManager &LayerManager::Get() {
-    if (!instance)
-        instance = new LayerManager();
-    return *instance;
-}
-
-void LayerManager::renderLayers() {
-    for (auto &[_, layer] : _layers)
-        layer->render();
-}
-*/
-/* Layer */
-
-Layer::Layer(const LayerContext& ctx, std::shared_ptr<Layer> parent) 
+Layer::Layer(const Layer::Context& ctx, std::shared_ptr<Layer> parent) 
     : _parent(parent), _context(ctx) {
     _id = nextId++;
     _renderTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
@@ -76,6 +59,10 @@ void Layer::render() {
         child->render();
 }
 
+void Layer::setContext(const Layer::Context& ctx) {
+    _context = ctx;
+}
+
 std::shared_ptr<Layer> Layer::getParent() const {
     return _parent.lock();
 }
@@ -101,6 +88,13 @@ void Layer::removeElement(std::shared_ptr<ui::element::Element> element) {
 }
 
 std::shared_ptr<ui::element::Element> Layer::hitTest(const Vector2 &point) const {
+    for (auto child: _children) {
+
+        if (auto element = child->hitTest(point)) {
+
+        }
+    }
+
     for (auto it = _elements.rbegin(); it != _elements.rend(); ++it) {
         auto element = *it;
         if (element->contains(point))

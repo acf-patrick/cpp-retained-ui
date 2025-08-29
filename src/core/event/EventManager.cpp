@@ -3,6 +3,7 @@
 namespace event {
 
 EventManager::EventManager(std::shared_ptr<ui::element::Element> root) : _root(root) {
+    _rootLayer = _root->getLayer();
 }
 
 void EventManager::update(std::uint64_t dt) {

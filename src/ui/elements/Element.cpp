@@ -2,6 +2,7 @@
 
 #include "../../utils/functions.h"
 #include "../../utils/operators.h"
+#include "../rendering/Layer.h"
 #include "../defaults.h"
 
 #include <yoga/YGNodeLayout.h>
@@ -118,9 +119,15 @@ Rectangle Element::getBoundingRect() const {
     return bb;
 }
 
-std::shared_ptr<Element> Element::getParent() {
+std::shared_ptr<Element> Element::getParent() const {
     if (auto parent = _parent.lock())
         return parent;
+    return nullptr;
+}
+
+std::shared_ptr<ui::layer::Layer> Element::getParentLayer() const {
+    if (auto parent = _parent.lock())
+        return parent->getLayer();
     return nullptr;
 }
 
@@ -581,7 +588,7 @@ void Element::render() {
     drawBorder(bb);
 }
 
-std::shared_ptr<ui::layer::Layer> Element::getLayer() const {
+std::shared_ptr<ui::rendering::Layer> Element::getLayer() const {
     return _layer.lock();
 }
 

@@ -6,19 +6,22 @@
 #include <memory>
 #include <vector>
 
-#include "./LayerContext.h"
-
 // forward declaration
 namespace ui {
 namespace element {
 class Element;
 }
 
-namespace layer {
+namespace rendering {
 
 class Layer {
   public:
     using LayerId = unsigned int;
+
+    struct Context {
+        int zIndex;
+        float opacity; // in ]0; 1[
+    };
 
   private:
     static LayerId nextId;
@@ -27,17 +30,20 @@ class Layer {
     std::vector<std::shared_ptr<Layer>> _children;
     std::weak_ptr<Layer> _parent;
     RenderTexture2D _renderTexture;
-    LayerContext _context;
+    Context _context;
+    bool _used; // tells if redering are currently performed on this layer's texture
     std::vector<std::shared_ptr<ui::element::Element>> _elements;
 
   public:
-    Layer(const LayerContext& ctx, std::shared_ptr<Layer> parent = nullptr);
+    Layer(const Context &ctx, std::shared_ptr<Layer> parent = nullptr);
     ~Layer();
 
     void clear();
     void render();
 
     LayerId getId() const;
+
+    void setContext(const Context &ctx);
 
     std::shared_ptr<Layer> getParent() const;
     void addChild(std::shared_ptr<Layer> child);
@@ -94,5 +100,5 @@ class LayerManager {
     friend class ui::element::Root;
 };
 */
-} // namespace layer
+} // namespace rendering
 } // namespace ui

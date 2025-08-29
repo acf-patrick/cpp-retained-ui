@@ -9,12 +9,16 @@
 #include <string>
 #include <vector>
 
-#include "../layer/Layer.h"
 #include "../styles/Layout.h"
 #include "../styles/Style.h"
 #include "../styles/Theme.h"
 
 namespace ui {
+
+namespace rendering {
+class Layer;
+}
+
 namespace element {
 
 class Element {
@@ -29,7 +33,7 @@ class Element {
     std::string _name;         // name of this element
     Vector2 _absolutePosition; // relative to root element
     std::weak_ptr<Element> _parent;
-    std::weak_ptr<ui::layer::Layer> _layer;
+    std::weak_ptr<ui::rendering::Layer> _layer;
     std::vector<std::shared_ptr<Element>> _children;
     bool _dirtyCachedInheritableProps;
     ui::style::Inheritables _cachedInheritableProps;
@@ -98,13 +102,15 @@ class Element {
 
     unsigned int getId() const;
 
-    std::shared_ptr<ui::layer::Layer> getLayer() const;
+    std::shared_ptr<ui::rendering::Layer> getLayer() const;
 
     ui::style::Layout getLayout() const;
 
     ui::style::Style getStyle() const;
 
-    std::shared_ptr<Element> getParent();
+    std::shared_ptr<Element> getParent() const;
+
+    std::shared_ptr<ui::layer::Layer> getParentLayer() const;
 
     std::vector<std::shared_ptr<Element>> getChildren();
 

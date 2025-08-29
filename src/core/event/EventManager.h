@@ -3,6 +3,7 @@
 #include "./Event.h"
 
 #include <elements/Element.h>
+#include <layer/Layer.h>
 
 #include <memory>
 #include <unordered_map>
@@ -17,7 +18,8 @@ class EventManager {
         std::unordered_map<MouseButton, std::uint64_t> clickedTime; // last click time in milliseconds
     };
 
-    std::weak_ptr<ui::element::Element> _root;
+    std::shared_ptr<ui::element::Element> _root;
+    std::shared_ptr<ui::layer::Layer> _rootLayer;
     std::vector<std::shared_ptr<Event>> _events;
     Cache _cache;
 
