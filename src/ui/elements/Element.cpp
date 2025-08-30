@@ -2,8 +2,9 @@
 
 #include "../../utils/functions.h"
 #include "../../utils/operators.h"
-#include "../rendering/Layer.h"
 #include "../defaults.h"
+#include "../rendering/Layer.h"
+#include "../rendering/StackingContext.h"
 
 #include <yoga/YGNodeLayout.h>
 
@@ -15,7 +16,7 @@
 namespace ui {
 namespace element {
 
-unsigned int Element::nextId = 0;
+Element::ElementId Element::nextId = 0;
 
 Element::Element(const std::string &name)
     : _preferredTheme(ui::style::Theme::Dark), _name(name), _dirtyCachedInheritableProps(true) {
@@ -97,6 +98,7 @@ void Element::removeChild(std::shared_ptr<Element> child) {
     auto it = std::find(_children.begin(), _children.end(), child);
     if (it != _children.end()) {
         YGNodeRemoveChild(_yogaNode, child->_yogaNode);
+        (*it)->_parent.reset();
         _children.erase(it);
     }
 }
@@ -125,7 +127,7 @@ std::shared_ptr<Element> Element::getParent() const {
     return nullptr;
 }
 
-std::shared_ptr<ui::layer::Layer> Element::getParentLayer() const {
+std::shared_ptr<ui::rendering::Layer> Element::getParentLayer() const {
     if (auto parent = _parent.lock())
         return parent->getLayer();
     return nullptr;

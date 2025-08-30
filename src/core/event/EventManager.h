@@ -3,7 +3,7 @@
 #include "./Event.h"
 
 #include <elements/Element.h>
-#include <layer/Layer.h>
+#include <rendering/Layer.h>
 
 #include <memory>
 #include <unordered_map>
@@ -19,7 +19,7 @@ class EventManager {
     };
 
     std::shared_ptr<ui::element::Element> _root;
-    std::shared_ptr<ui::layer::Layer> _rootLayer;
+    std::shared_ptr<ui::rendering::Layer> _rootLayer;
     std::vector<std::shared_ptr<Event>> _events;
     Cache _cache;
 

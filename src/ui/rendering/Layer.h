@@ -19,7 +19,6 @@ class Layer {
     using LayerId = unsigned int;
 
     struct Context {
-        int zIndex;
         float opacity; // in ]0; 1[
     };
 
@@ -34,6 +33,8 @@ class Layer {
     bool _used; // tells if redering are currently performed on this layer's texture
     std::vector<std::shared_ptr<ui::element::Element>> _elements;
 
+    void appendChild(std::shared_ptr<Layer> child);
+
   public:
     Layer(const Context &ctx, std::shared_ptr<Layer> parent = nullptr);
     ~Layer();
@@ -43,16 +44,26 @@ class Layer {
 
     LayerId getId() const;
 
+    std::vector<std::shared_ptr<Layer>> getChildren() const;
+
+    void setParent(std::shared_ptr<Layer> parent);
     void setContext(const Context &ctx);
 
     std::shared_ptr<Layer> getParent() const;
-    void addChild(std::shared_ptr<Layer> child);
     void removeChild(std::shared_ptr<Layer> child);
 
     void addElement(std::shared_ptr<ui::element::Element> element);
     void removeElement(std::shared_ptr<ui::element::Element> element);
 
     std::shared_ptr<ui::element::Element> hitTest(const Vector2 &point) const;
+
+    static std::shared_ptr<Layer> AppendChild(std::shared_ptr<Layer> parent, std::shared_ptr<Layer> child);
+
+    template<typename... Layers>
+    static std::shared_ptr<Layer> AppendChildren(std::shared_ptr<Layer> parent, std::shared_ptr<Layers>&&... layers) {
+      (AppendChild(parent, layers), ...);
+      return parent;
+    }
 };
 
 /*

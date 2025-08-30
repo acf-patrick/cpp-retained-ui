@@ -15,25 +15,28 @@
 
 namespace ui {
 
-namespace rendering {
+namespace rendering { // forward declarations
 class Layer;
-}
+class StackingContext;
+} // namespace rendering
 
 namespace element {
 
 class Element {
-    static unsigned int nextId;
+    using ElementId = unsigned int;
+    static ElementId nextId;
 
   protected:
     ui::style::Layout _layout;
     ui::style::Style _style;
     YGNodeRef _yogaNode;
-    unsigned int _id;
+    ElementId _id;
     ui::style::Theme _preferredTheme;
     std::string _name;         // name of this element
     Vector2 _absolutePosition; // relative to root element
     std::weak_ptr<Element> _parent;
     std::weak_ptr<ui::rendering::Layer> _layer;
+    std::weak_ptr<ui::rendering::StackingContext> _stackingContext;
     std::vector<std::shared_ptr<Element>> _children;
     bool _dirtyCachedInheritableProps;
     ui::style::Inheritables _cachedInheritableProps;
@@ -110,7 +113,7 @@ class Element {
 
     std::shared_ptr<Element> getParent() const;
 
-    std::shared_ptr<ui::layer::Layer> getParentLayer() const;
+    std::shared_ptr<ui::rendering::Layer> getParentLayer() const;
 
     std::vector<std::shared_ptr<Element>> getChildren();
 
@@ -133,7 +136,7 @@ class Element {
     template <typename... Elements>
     static std::shared_ptr<Element> AppendChildren(
         std::shared_ptr<Element> parent,
-        Elements &&...children) {
+        std::shared_ptr<Elements> &&...children) {
         (AppendChild(parent, children), ...);
         return parent;
     }
