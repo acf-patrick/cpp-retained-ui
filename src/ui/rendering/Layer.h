@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <optional>
 
 // forward declaration
 namespace ui {
@@ -23,11 +24,25 @@ class Layer {
   public:
     using LayerId = unsigned int;
 
+    class UseLayerGuard {
+        std::optional<RenderTexture2D> _texture;
+
+      public:
+        UseLayerGuard() = default;
+        UseLayerGuard(RenderTexture2D texture) : _texture(texture) { BeginTextureMode(texture); }
+        ~UseLayerGuard() { 
+          if (_texture)
+            EndTextureMode(); 
+        }
+    };
+
+    using UseLayerGuardRef = std::shared_ptr<UseLayerGuard>;
+
     struct Context {
         float opacity; // in ]0; 1[
 
         Context() = default;
-        Context(const ui::style::Style& style);
+        Context(const ui::style::Style &style);
     };
 
   private:
@@ -37,7 +52,7 @@ class Layer {
     std::vector<std::shared_ptr<Layer>> _children;
     std::weak_ptr<Layer> _parent;
     RenderTexture2D _renderTexture;
-    Context _context;
+
     // bool _used; // tells if redering are currently performed on this layer's texture
     std::weak_ptr<ui::element::Element> _owner;
     std::vector<std::weak_ptr<ui::element::Element>> _elements;
@@ -51,14 +66,18 @@ class Layer {
     void clear();
     void render();
 
+    UseLayerGuardRef use();
+
+    void compositeChildren();
+
     void setOwner(std::shared_ptr<ui::element::Element> owner);
     std::shared_ptr<ui::element::Element> getOwner() const;
 
     LayerId getId() const;
+    Context getContext() const;
     std::vector<std::shared_ptr<Layer>> getChildren() const;
 
     void setParent(std::shared_ptr<Layer> parent);
-    void setContext(const Context &ctx);
 
     std::shared_ptr<Layer> getParent() const;
     void removeChild(std::shared_ptr<Layer> child);
@@ -73,10 +92,10 @@ class Layer {
 
     static std::shared_ptr<Layer> AppendChild(std::shared_ptr<Layer> parent, std::shared_ptr<Layer> child);
 
-    template<typename... Layers>
-    static std::shared_ptr<Layer> AppendChildren(std::shared_ptr<Layer> parent, std::shared_ptr<Layers>&&... layers) {
-      (AppendChild(parent, layers), ...);
-      return parent;
+    template <typename... Layers>
+    static std::shared_ptr<Layer> AppendChildren(std::shared_ptr<Layer> parent, std::shared_ptr<Layers> &&...layers) {
+        (AppendChild(parent, layers), ...);
+        return parent;
     }
 };
 

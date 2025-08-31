@@ -36,8 +36,12 @@ void Layer::render() {
     throw std::logic_error("Layer::render not implemented yet");
 }
 
-void Layer::setContext(const Layer::Context &ctx) {
-    _context = ctx;
+Layer::Context Layer::getContext() const {
+    if (auto owner = _owner.lock())
+        return Context(owner->getStyle());
+
+    TraceLog(LOG_ERROR, "[Layer] %d has null owner element", _id);
+    throw std::runtime_error("[Layer] Null owner");
 }
 
 std::shared_ptr<Layer> Layer::getParent() const {
@@ -76,6 +80,14 @@ void Layer::removeElement(std::shared_ptr<ui::element::Element> element) {
 
 void Layer::removeAllElements() {
     _elements.clear();
+}
+
+void Layer::compositeChildren() {
+    //   _owner
+}
+
+Layer::UseLayerGuardRef Layer::use() {
+    return std::make_shared<UseLayerGuard>(_renderTexture);
 }
 
 std::shared_ptr<ui::element::Element> Layer::hitTest(const Vector2 &point) const {

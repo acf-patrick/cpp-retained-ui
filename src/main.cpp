@@ -72,7 +72,7 @@ class Engine {
                 ctx->setLayer(layer);
                 ui::rendering::Layer::AppendChild(parentLayer, layer);
             } else {
-                ctx->setLayer(ctx->getParentLayer());
+                // ctx->setLayer(ctx->getParentLayer());
             }
 
             ctx->updateLayersElements();
@@ -173,10 +173,28 @@ class Engine {
         }
     }
 
+    void render() {
+        std::queue<std::shared_ptr<ui::rendering::StackingContext>> queue;
+        queue.push(_stackingContextRoot);
+
+        while (!queue.empty()) {
+            auto ctx = queue.front();
+            queue.pop();
+
+            if (auto layer = ctx->getLayer()) {
+                auto useGuard = layer->use(); // render onto this layer own texture
+                auto ctxOwner = ctx->getOwner();
+            }
+        }
+    }
+
   public:
     Engine() {
         _repositories = repository::InitRepositories();
         scaffold();
+
+        _stackingContextRoot = buildStackingContextTree(_elementsRoot);
+        _layerRoot = buildLayerTree(_stackingContextRoot);
 
         SetTraceLogLevel(LOG_DEBUG);
         SetTargetFPS(60);
@@ -190,7 +208,7 @@ class Engine {
         while (!WindowShouldClose()) {
             _elementsRoot->update();
             BeginDrawing();
-            renderElements();
+            render();
             EndDrawing();
         }
     }

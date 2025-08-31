@@ -30,9 +30,16 @@ class StackingContext {
     };
 
   private:
-    static StackingContextId nextId;
+    struct Comparator {
+      bool operator()(const std::shared_ptr<StackingContext>& a, const std::shared_ptr<StackingContext>& b) const {
+        const auto ctxA = a->getContext();
+        const auto ctxB = b->getContext();
 
-    Context _context;
+        return ctxA.zIndex <= ctxB.zIndex;
+      }
+    };
+    
+    static StackingContextId nextId;
     std::weak_ptr<StackingContext> _parent;
     std::weak_ptr<ui::element::Element> _owner;
     std::vector<std::shared_ptr<StackingContext>> _children;
@@ -50,9 +57,15 @@ class StackingContext {
     void setOwner(std::shared_ptr<ui::element::Element> owner);
 
     std::vector<std::shared_ptr<StackingContext>> getChildren() const;
+    std::vector<std::shared_ptr<StackingContext>> getSortedChildren() const;
 
     // Pass this context's normal flow elements to its layer
     void updateLayersElements();
+
+    // Render self and children in stack way
+    void render();
+
+    Context getContext() const;
 
     void setLayer(std::shared_ptr<Layer> layer);
     std::shared_ptr<Layer> getParentLayer() const;

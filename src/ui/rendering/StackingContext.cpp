@@ -21,7 +21,6 @@ StackingContext::StackingContext(std::shared_ptr<ui::element::Element> owner) : 
         throw std::runtime_error(errorMessage);
     }
 
-    _context = owner->getStyle();
     _id = nextId++;
 }
 
@@ -29,6 +28,22 @@ StackingContext::~StackingContext() {}
 
 std::vector<std::shared_ptr<StackingContext>> StackingContext::getChildren() const {
     return _children;
+}
+
+std::vector<std::shared_ptr<StackingContext>> StackingContext::getSortedChildren() const {
+    auto sortedChildren(_children);
+    Comparator comparator;
+
+    std::sort(sortedChildren.begin(), sortedChildren.end(), comparator);
+    return sortedChildren;
+}
+
+StackingContext::Context StackingContext::getContext() const {
+    if (auto owner = _owner.lock())
+        return Context(owner->getStyle());
+
+    TraceLog(LOG_ERROR, "[StackingContext] %d has null owner element", _id);
+    throw std::runtime_error("[StackingContext] Null owner");
 }
 
 std::shared_ptr<StackingContext> StackingContext::getParent() const {
@@ -93,6 +108,21 @@ void StackingContext::updateLayersElements() {
         for (auto e : _elements)
             layer->addElement(e.lock());
     }
+}
+
+void StackingContext::render() {
+    Layer::UseLayerGuardRef useLayerGuard;
+
+    if (auto layer = _layer.lock()) {
+        useLayerGuard = layer->use();
+    }
+
+    _owner.lock()->render();
+    for (auto e : _elements) {
+        e.lock()->render();
+    }
+
+    // TODO
 }
 
 std::shared_ptr<StackingContext> StackingContext::AppendChild(std::shared_ptr<StackingContext> parent, std::shared_ptr<StackingContext> child) {
