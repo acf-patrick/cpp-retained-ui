@@ -4,15 +4,16 @@
 #include "../core/repository/TextureRepository.h"
 #include "../utils/debug.h"
 
-#include <iostream>
-
 namespace ui {
 namespace element {
 
 Image::Image(const std::string &src, const std::string &alt) : Element("Image"), _src(src), _alt(alt), _altColor(Color{.r = 0x8A, .g = 0x8A, .b = 0x8A, .a = 0xff}) {
     auto textures = repository::TextureRepository::Get();
-    if (!textures)
-        throw std::logic_error("[Image] Texture repository not initialized.");
+    if (!textures) {
+        const std::string errorMessage("[Image] Texture repository not initialized.");
+        TraceLog(LOG_FATAL, errorMessage.c_str());
+        throw std::logic_error(errorMessage);
+    }
 
     updateStyle(ui::defaults::imageStyles());
 
@@ -32,7 +33,9 @@ Image::~Image() {
 }
 
 void Image::onChildAppended(std::shared_ptr<Element>) {
-    throw std::logic_error("[Image] Image elemenet can only be used as leaf node.");
+    const std::string errorMessage("[Image] Image element can only be used as leaf node.");
+    TraceLog(LOG_FATAL, errorMessage.c_str());
+    throw std::logic_error(errorMessage);
 }
 
 void Image::loadAltImageIconTexture() {
@@ -46,8 +49,11 @@ void Image::loadAltImageIconTexture() {
 
 void Image::render() {
     auto textures = repository::TextureRepository::Get();
-    if (!textures)
-        throw std::logic_error("[Image] Texture repository not initialized.");
+    if (!textures) {
+        const std::string errorMessage("[Image] Texture repository not initialized.");
+        TraceLog(LOG_FATAL, errorMessage.c_str());
+        throw std::logic_error(errorMessage);
+    }
 
     auto optTexture = textures->get(_src);
     if (!optTexture) {

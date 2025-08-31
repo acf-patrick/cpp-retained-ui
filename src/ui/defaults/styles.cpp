@@ -6,6 +6,9 @@ namespace defaults {
 
 ui::style::Style elementStyles(ui::style::Theme theme) {
     ui::style::Style style;
+    style.opacity = 1.0;
+    style.zIndex = 0;
+    style.isolation = ui::style::IsolationAuto{};
     return style;
 }
 

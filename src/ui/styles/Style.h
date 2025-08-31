@@ -4,6 +4,7 @@
 #include "./BorderColors.h"
 #include "./DrawableContentProps.h"
 #include "./Inheritables.h"
+#include "./Isolation.h"
 
 #include <optional>
 #include <raylib.h>
@@ -13,6 +14,9 @@ namespace style {
 
 struct Style {
     Inheritables inheritables;
+    float opacity;
+    int zIndex;
+    Isolation isolation; // isolate : Element forces a new stacking context to isolate blending
     std::optional<Color> backgroundColor;
     std::optional<Color> borderColor;
     std::optional<BorderColors> borderColors;

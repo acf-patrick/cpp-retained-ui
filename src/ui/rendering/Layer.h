@@ -30,20 +30,23 @@ class Layer {
     std::weak_ptr<Layer> _parent;
     RenderTexture2D _renderTexture;
     Context _context;
-    bool _used; // tells if redering are currently performed on this layer's texture
-    std::vector<std::shared_ptr<ui::element::Element>> _elements;
+    // bool _used; // tells if redering are currently performed on this layer's texture
+    std::weak_ptr<ui::element::Element> _owner;
+    std::vector<std::weak_ptr<ui::element::Element>> _elements;
 
     void appendChild(std::shared_ptr<Layer> child);
 
   public:
-    Layer(const Context &ctx, std::shared_ptr<Layer> parent = nullptr);
+    Layer(const Context &ctx, std::shared_ptr<ui::element::Element> owner, std::shared_ptr<Layer> parent = nullptr);
     ~Layer();
 
     void clear();
     void render();
 
-    LayerId getId() const;
+    void setOwner(std::shared_ptr<ui::element::Element> owner);
+    std::shared_ptr<ui::element::Element> getOwner() const;
 
+    LayerId getId() const;
     std::vector<std::shared_ptr<Layer>> getChildren() const;
 
     void setParent(std::shared_ptr<Layer> parent);

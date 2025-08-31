@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <variant>
 
+#include <raylib.h>
+
 #include "../utils/operators.h"
 
 namespace ui {
@@ -48,7 +50,9 @@ class MaybeInherited {
         if (auto value = std::get_if<T>(&_value))
             return *value;
         
-        throw std::logic_error("MaybeInherited::unwrap : Unwraping inherited object");
+        const std::string errorMessage("MaybeInherited::unwrap : Unwraping inherited object");
+        TraceLog(LOG_FATAL, errorMessage.c_str());
+        throw std::logic_error(errorMessage);
     }
 
     void setAsInherited() {

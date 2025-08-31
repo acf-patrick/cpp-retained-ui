@@ -3,13 +3,15 @@
 #include "./Element.h"
 #include <raylib.h>
 
+#include <memory>
+
 namespace ui {
 namespace element {
 
-class Root : public Element {
+class Root : public Element, std::enable_shared_from_this<Root> {
     YGConfigRef _config;
     bool _finalized = false;
-    bool _dirtyLayout = true;          // should calculate layout at least once
+    bool _dirtyLayout = true; // should calculate layout at least once
 
     void calculateLayout();
     void propagateStyles();

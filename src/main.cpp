@@ -2,27 +2,41 @@
 #include <memory>
 #include <raylib.h>
 #include <repository.h>
+#include <queue>
+#include <unordered_set>
 #include <ui.h>
 
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
 
-int main() {
-    // TEST PLAYGROUND
+class Engine {
+    struct WindowInitialization {
+        WindowInitialization() {
+            InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Retained UI with raylib");
+        }
 
-    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Retained UI with raylib");
-    SetTraceLogLevel(LOG_DEBUG);
+        ~WindowInitialization() {
+            CloseWindow();
+        }
+    };
 
-    SetTargetFPS(60);
+    WindowInitialization _windowInit; // gets destroyed last
+    std::shared_ptr<ui::element::Root> _elementsRoot;
+    std::shared_ptr<ui::rendering::StackingContext> _stackingContextRoot;
+    std::shared_ptr<ui::rendering::Layer> _layerRoot;
+    std::vector<repository::Repository *> _repositories;
 
-    auto repositories = repository::InitRepositories();
-    Vector2 windowSize = {.x = WINDOW_WIDTH, .y = WINDOW_HEIGHT};
+    void buildStackingContextTree() {
+        auto ctx = _stackingContextRoot = std::make_shared<ui::rendering::StackingContext>(_elementsRoot);
+    }
 
-    {
-        auto root = std::make_shared<ui::element::Root>(windowSize);
+    void scaffold() {
+        _elementsRoot = std::make_shared<ui::element::Root>(Vector2{
+            .x = WINDOW_WIDTH,
+            .y = WINDOW_HEIGHT});
 
         auto view = std::make_shared<ui::element::View>();
-        ui::element::Element::AppendChild(root, view);
+        ui::element::Element::AppendChild(_elementsRoot, view);
 
         {
             auto layout = view->getLayout();
@@ -83,16 +97,53 @@ int main() {
             image->updateLayout(layout);
         }
 
-        root->finalize();
+        _elementsRoot->finalize();
+    }
+
+    void renderElements() {
+        std::queue<std::shared_ptr<ui::element::Element>> queue;
+        std::unordered_set<ui::element::Element::ElementId> visitedIds;
+
+        queue.push(_elementsRoot);
+        while (!queue.empty()) {
+            auto e = queue.front(); queue.pop();
+            if (visitedIds.contains(e->getId())) continue;
+
+            e->render();
+            visitedIds.emplace(e->getId());
+
+            for (auto child: e->getChildren())
+                queue.push(child);
+        }
+    }
+
+  public:
+    Engine() {
+        _repositories = repository::InitRepositories();
+        scaffold();
+
+        SetTraceLogLevel(LOG_DEBUG);
+        SetTargetFPS(60);
+    }
+
+    ~Engine() {
+        repository::Repository::Clear(_repositories);
+    }
+
+    void run() {
         while (!WindowShouldClose()) {
-            root->update();
+            _elementsRoot->update();
             BeginDrawing();
-            root->render();
+            renderElements();
             EndDrawing();
         }
     }
-    repository::Repository::Clear(repositories);
-    CloseWindow();
+};
+
+int main() {
+    // TEST PLAYGROUND
+    Engine engine;
+    engine.run();
 
     return 0;
 }

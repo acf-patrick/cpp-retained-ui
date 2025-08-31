@@ -3,7 +3,6 @@
 #include "../../utils/functions.h"
 #include "../../utils/operators.h"
 #include "../defaults.h"
-#include "../rendering/Layer.h"
 #include "../rendering/StackingContext.h"
 
 #include <yoga/YGNodeLayout.h>
@@ -60,7 +59,7 @@ void Element::markInheritableStylesAsDirty() {
     // notify children
     std::queue<Element *> queue;
     queue.push(this);
-    std::unordered_set<unsigned int> visitedIds;
+    std::unordered_set<ElementId> visitedIds;
 
     while (!queue.empty()) {
         auto e = queue.front();
@@ -88,6 +87,14 @@ void Element::markLayoutAsDirty() {
 void Element::appendChild(std::shared_ptr<Element> child) {
     if (!child)
         return;
+
+    for (auto parent = getParent(); parent; parent = parent->getParent()) {
+        if (parent == child) {
+            const std::string errorMessage("[Element] Provided element is an ancestor of this element.");
+            TraceLog(LOG_FATAL, errorMessage.c_str());
+            throw std::logic_error(errorMessage);
+        }
+    }
 
     _children.push_back(child);
     YGNodeInsertChild(_yogaNode, child->_yogaNode, _children.size() - 1);
@@ -127,12 +134,6 @@ std::shared_ptr<Element> Element::getParent() const {
     return nullptr;
 }
 
-std::shared_ptr<ui::rendering::Layer> Element::getParentLayer() const {
-    if (auto parent = _parent.lock())
-        return parent->getLayer();
-    return nullptr;
-}
-
 std::vector<std::shared_ptr<Element>> Element::getChildren() {
     return _children;
 }
@@ -149,7 +150,7 @@ std::vector<std::shared_ptr<Element>> Element::getSiblings() {
     return siblings;
 }
 
-unsigned int Element::getId() const {
+Element::ElementId Element::getId() const {
     return _id;
 }
 
@@ -590,8 +591,14 @@ void Element::render() {
     drawBorder(bb);
 }
 
-std::shared_ptr<ui::rendering::Layer> Element::getLayer() const {
-    return _layer.lock();
+std::shared_ptr<ui::rendering::StackingContext> Element::getParentStackingContext() const {
+    if (auto parent = _parent.lock())
+        return parent->getStackingContext();
+    return nullptr;
+}
+
+std::shared_ptr<ui::rendering::StackingContext> Element::getStackingContext() const {
+    return _stackingContext.lock();
 }
 
 int Element::getSegmentCount(float radius) const {
@@ -623,6 +630,18 @@ void Element::updateCachedInheritablePropsFrom(std::shared_ptr<Element> element)
 
     const auto &newProps = element->_cachedInheritableProps;
     _cachedInheritableProps.updateInheritedFields(_style.inheritables, newProps);
+}
+
+std::shared_ptr<ui::rendering::StackingContext> Element::updateStackingContext() {
+    auto ctx = _stackingContext.lock();
+    /*if (!ui::rendering::
+    StyleTriggerStackingContext(_style))
+        return ctx;
+
+    auto test = new ui::rendering::StackingContext(_style);*/
+    
+
+    return ctx;
 }
 
 std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,

@@ -10,6 +10,7 @@
 #include <string>
 #include <type_traits>
 #include <variant>
+#include <raylib.h>
 
 template <typename T, typename OtherType>
 struct IsInVariant : std::false_type {};
@@ -44,7 +45,9 @@ class Event {
         if (auto data = std::get_if<T>(&_data))
             return *data;
 
-        throw std::logic_error("[Event] unwrapping wrong type");
+        const std::string errorMessage("[Event] unwrapping wrong type");
+        TraceLog(LOG_FATAL, errorMessage.c_str());
+        throw std::logic_error(errorMessage);
     }
 
     template <typename T>

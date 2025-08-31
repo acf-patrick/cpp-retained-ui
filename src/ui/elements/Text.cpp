@@ -50,7 +50,9 @@ void Text::render() {
 std::optional<Font> Text::getUsedFont() const {
     auto fonts = repository::FontRepository::Get();
     if (!fonts) {
-        throw std::logic_error("[Text] Font repository not initialized.");
+        const std::string errorMessage("[Text] Font repository not initialized.");
+        TraceLog(LOG_FATAL, errorMessage.c_str());
+        throw std::logic_error(errorMessage);
     }
 
     const auto fontFamily = _cachedInheritableProps.fontFamily.unwrap();
@@ -67,7 +69,9 @@ std::optional<Font> Text::getUsedFont() const {
 }
 
 void Text::onChildAppended(std::shared_ptr<Element>) {
-    throw std::logic_error("[Text] Text element can only be used as leaf node.");
+    const std::string errorMessage("[Text] Text element can only be used as leaf node.");
+    TraceLog(LOG_FATAL, errorMessage.c_str());
+    throw std::logic_error(errorMessage);
 }
 
 } // namespace element

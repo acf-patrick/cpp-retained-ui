@@ -1,6 +1,8 @@
 #include "./Root.h"
 #include "../defaults.h"
-#include <iostream>
+
+#include "../rendering.h"
+
 #include <queue>
 #include <unordered_set>
 
@@ -12,7 +14,6 @@ Root::Root(const Vector2 &windowSize) : Element("Root") {
     _config = YGConfigNew();
     YGConfigSetUseWebDefaults(_config, true);
     _yogaNode = YGNodeNewWithConfig(_config);
-    
 
     updateLayout(ui::defaults::rootLayout(windowSize));
 }
@@ -22,6 +23,8 @@ Root::~Root() {
 }
 
 void Root::finalize() {
+    TraceLog(LOG_INFO, "[Root] Finalizing element tree");
+
     updateStyle(ui::defaults::rootStyles(_preferredTheme));
     propagatePreferredTheme();
     propagateStyles();
@@ -118,35 +121,22 @@ void Root::update() {
 }
 
 void Root::render() {
+    std::string errorMessage;
     if (!_finalized)
-        throw std::logic_error("[Root] Rendering non-finalized root element");
+        errorMessage = "[Root] Rendering non-finalized root element\n";
 
     if (_dirtyLayout)
-        throw std::logic_error("[Root] Rendering dirty layout");
+        errorMessage = "[Root] Rendering dirty layout\n";
 
     if (_dirtyCachedInheritableProps)
-        throw std::logic_error("[Root] Rendering with inherited styles not recalculated");
+        errorMessage = "[Root] Rendering with inherited styles not recalculated\n";
 
-    std::queue<Element *> queue;
-    queue.push(this);
-    std::unordered_set<unsigned int> visitedIds;
-
-    ClearBackground(_style.backgroundColor.value_or(BLACK));
-
-    while (!queue.empty()) {
-        auto node = queue.front();
-        queue.pop();
-
-        if (visitedIds.contains(node->getId()) || node->isNotDisplayed())
-            continue;
-
-        if (node != this)
-            node->render();
-
-        visitedIds.emplace(node->getId());
-        for (auto &child : node->getChildren())
-            queue.push(child.get());
+    if (!errorMessage.empty()) {
+        TraceLog(LOG_FATAL, errorMessage.c_str());
+        throw std::logic_error(errorMessage);
     }
+
+    Element::render();
 }
 
 } // namespace element
