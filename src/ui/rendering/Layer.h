@@ -8,6 +8,11 @@
 
 // forward declaration
 namespace ui {
+
+namespace style {
+class Style;
+}
+
 namespace element {
 class Element;
 }
@@ -20,6 +25,9 @@ class Layer {
 
     struct Context {
         float opacity; // in ]0; 1[
+
+        Context() = default;
+        Context(const ui::style::Style& style);
     };
 
   private:
@@ -37,7 +45,7 @@ class Layer {
     void appendChild(std::shared_ptr<Layer> child);
 
   public:
-    Layer(const Context &ctx, std::shared_ptr<ui::element::Element> owner, std::shared_ptr<Layer> parent = nullptr);
+    Layer(std::shared_ptr<ui::element::Element> owner);
     ~Layer();
 
     void clear();
@@ -57,8 +65,11 @@ class Layer {
 
     void addElement(std::shared_ptr<ui::element::Element> element);
     void removeElement(std::shared_ptr<ui::element::Element> element);
+    void removeAllElements();
 
     std::shared_ptr<ui::element::Element> hitTest(const Vector2 &point) const;
+
+    static bool IsRequiredFor(std::shared_ptr<ui::element::Element> element);
 
     static std::shared_ptr<Layer> AppendChild(std::shared_ptr<Layer> parent, std::shared_ptr<Layer> child);
 

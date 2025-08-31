@@ -1,10 +1,10 @@
 #include <iostream>
 #include <memory>
+#include <queue>
 #include <raylib.h>
 #include <repository.h>
-#include <queue>
-#include <unordered_set>
 #include <ui.h>
+#include <unordered_set>
 
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
@@ -26,8 +26,62 @@ class Engine {
     std::shared_ptr<ui::rendering::Layer> _layerRoot;
     std::vector<repository::Repository *> _repositories;
 
-    void buildStackingContextTree() {
-        auto ctx = _stackingContextRoot = std::make_shared<ui::rendering::StackingContext>(_elementsRoot);
+    std::shared_ptr<ui::rendering::StackingContext> buildStackingContextTree(std::shared_ptr<ui::element::Element> elementsRoot) const {
+        std::queue<std::shared_ptr<ui::element::Element>> queue;
+        std::unordered_set<ui::element::Element::ElementId> visitedIds;
+
+        queue.push(elementsRoot);
+        while (!queue.empty()) {
+            auto e = queue.front();
+            queue.pop();
+            if (visitedIds.contains(e->getId()))
+                continue;
+
+            if (ui::rendering::StackingContext::IsRequiredFor(e)) {
+                auto ctx = std::make_shared<ui::rendering::StackingContext>(e);
+                auto parentCtx = e->getParentStackingContext();
+                e->setStackingContext(ctx);
+                ui::rendering::StackingContext::AppendChild(parentCtx, ctx);
+            } else {
+                auto parentCtx = e->getParentStackingContext();
+                parentCtx->addElement(e);
+                e->setStackingContext(parentCtx);
+            }
+
+            for (auto child : e->getChildren())
+                queue.push(child);
+
+            visitedIds.emplace(e->getId());
+        }
+
+        return elementsRoot->getStackingContext();
+    }
+
+    std::shared_ptr<ui::rendering::Layer> buildLayerTree(std::shared_ptr<ui::rendering::StackingContext> rootCtx) const {
+        std::queue<std::shared_ptr<ui::rendering::StackingContext>> queue;
+        queue.push(rootCtx);
+
+        while (!queue.empty()) {
+            auto ctx = queue.front();
+            queue.pop();
+            auto ctxOwner = ctx->getOwner();
+
+            if (ui::rendering::Layer::IsRequiredFor(ctxOwner)) {
+                auto layer = std::make_shared<ui::rendering::Layer>(ctxOwner);
+                auto parentLayer = ctx->getParentLayer();
+                ctx->setLayer(layer);
+                ui::rendering::Layer::AppendChild(parentLayer, layer);
+            } else {
+                ctx->setLayer(ctx->getParentLayer());
+            }
+
+            ctx->updateLayersElements();
+
+            for (auto child : ctx->getChildren())
+                queue.push(child);
+        }
+
+        return rootCtx->getLayer();
     }
 
     void scaffold() {
@@ -106,13 +160,15 @@ class Engine {
 
         queue.push(_elementsRoot);
         while (!queue.empty()) {
-            auto e = queue.front(); queue.pop();
-            if (visitedIds.contains(e->getId())) continue;
+            auto e = queue.front();
+            queue.pop();
+            if (visitedIds.contains(e->getId()))
+                continue;
 
             e->render();
             visitedIds.emplace(e->getId());
 
-            for (auto child: e->getChildren())
+            for (auto child : e->getChildren())
                 queue.push(child);
         }
     }

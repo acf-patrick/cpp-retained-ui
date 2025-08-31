@@ -597,6 +597,10 @@ std::shared_ptr<ui::rendering::StackingContext> Element::getParentStackingContex
     return nullptr;
 }
 
+void Element::setStackingContext(std::shared_ptr<ui::rendering::StackingContext> ctx) {
+    _stackingContext = ctx;
+}
+
 std::shared_ptr<ui::rendering::StackingContext> Element::getStackingContext() const {
     return _stackingContext.lock();
 }
@@ -630,18 +634,6 @@ void Element::updateCachedInheritablePropsFrom(std::shared_ptr<Element> element)
 
     const auto &newProps = element->_cachedInheritableProps;
     _cachedInheritableProps.updateInheritedFields(_style.inheritables, newProps);
-}
-
-std::shared_ptr<ui::rendering::StackingContext> Element::updateStackingContext() {
-    auto ctx = _stackingContext.lock();
-    /*if (!ui::rendering::
-    StyleTriggerStackingContext(_style))
-        return ctx;
-
-    auto test = new ui::rendering::StackingContext(_style);*/
-    
-
-    return ctx;
 }
 
 std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,

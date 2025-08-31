@@ -5,14 +5,20 @@
 #include <unordered_set>
 
 #include "../elements/Element.h"
+#include "../styles/Style.h"
+#include "./StackingContext.h"
 
 ui::rendering::Layer::LayerId ui::rendering::Layer::nextId = 0;
 
 namespace ui {
 namespace rendering {
 
-Layer::Layer(const Layer::Context &ctx, std::shared_ptr<ui::element::Element> owner, std::shared_ptr<Layer> parent)
-    : _parent(parent), _context(ctx), _owner(owner) {
+Layer::Context::Context(const ui::style::Style &style) {
+    opacity = style.opacity;
+}
+
+Layer::Layer(std::shared_ptr<ui::element::Element> owner)
+    : _owner(owner) {
     _id = nextId++;
     _renderTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
     if (_renderTexture.id == 0) {
@@ -68,6 +74,10 @@ void Layer::removeElement(std::shared_ptr<ui::element::Element> element) {
                            [=](std::weak_ptr<ui::element::Element> e) { return e.lock() == element; }));
 }
 
+void Layer::removeAllElements() {
+    _elements.clear();
+}
+
 std::shared_ptr<ui::element::Element> Layer::hitTest(const Vector2 &point) const {
     throw std::logic_error("Layer::hitTest not implemented yet");
 }
@@ -77,11 +87,30 @@ void Layer::setParent(std::shared_ptr<Layer> parent) {
 }
 
 void Layer::setOwner(std::shared_ptr<ui::element::Element> owner) {
-    _owner = owner;
+    if (!owner) {
+        const std::string errorMessage("[Layer] nullptr provided as owner");
+        TraceLog(LOG_ERROR, errorMessage.c_str());
+    } else
+        _owner = owner;
 }
 
 std::shared_ptr<ui::element::Element> Layer::getOwner() const {
     return _owner.lock();
+}
+
+bool Layer::IsRequiredFor(std::shared_ptr<ui::element::Element> element) {
+    if (!StackingContext::IsRequiredFor(element))
+        return false;
+    if (element == nullptr)
+        return false;
+
+    const auto style = element->getStyle();
+    return style.opacity < 1.0f;
+    /*
+        or hasTransform
+        or hasFilter
+        or hasBackdropEffect
+    */
 }
 
 std::shared_ptr<Layer> Layer::AppendChild(std::shared_ptr<Layer> parent, std::shared_ptr<Layer> child) {

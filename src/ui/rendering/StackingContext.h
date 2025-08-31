@@ -43,7 +43,7 @@ class StackingContext {
     void appendChild(std::shared_ptr<StackingContext> child);
 
   public:
-    StackingContext(std::shared_ptr<ui::element::Element> owner, std::shared_ptr<StackingContext> parent = nullptr);
+    StackingContext(std::shared_ptr<ui::element::Element> owner);
     ~StackingContext();
 
     std::shared_ptr<ui::element::Element> getOwner() const;
@@ -51,6 +51,14 @@ class StackingContext {
 
     std::vector<std::shared_ptr<StackingContext>> getChildren() const;
 
+    // Pass this context's normal flow elements to its layer
+    void updateLayersElements();
+
+    void setLayer(std::shared_ptr<Layer> layer);
+    std::shared_ptr<Layer> getParentLayer() const;
+    std::shared_ptr<Layer> getLayer() const;
+
+    std::shared_ptr<StackingContext> getParent() const;
     void setParent(std::shared_ptr<StackingContext> parent);
     void removeChild(std::shared_ptr<StackingContext> child);
 

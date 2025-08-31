@@ -1,6 +1,6 @@
 #include "./StackingContext.h"
 #include "../elements/Element.h"
-#include "../styles/Style.h"
+#include "./Layer.h"
 
 #include <algorithm>
 
@@ -14,7 +14,7 @@ StackingContext::Context::Context(const ui::style::Style &style) {
     zIndex = style.zIndex;
 }
 
-StackingContext::StackingContext(std::shared_ptr<ui::element::Element> owner, std::shared_ptr<StackingContext> parent) : _parent(parent), _owner(owner) {
+StackingContext::StackingContext(std::shared_ptr<ui::element::Element> owner) : _owner(owner) {
     if (!owner) {
         const std::string errorMessage("[StackingContext] stacking context created on null element");
         TraceLog(LOG_FATAL, errorMessage.c_str());
@@ -29,6 +29,10 @@ StackingContext::~StackingContext() {}
 
 std::vector<std::shared_ptr<StackingContext>> StackingContext::getChildren() const {
     return _children;
+}
+
+std::shared_ptr<StackingContext> StackingContext::getParent() const {
+    return _parent.lock();
 }
 
 void StackingContext::setParent(std::shared_ptr<StackingContext> parent) {
@@ -62,7 +66,33 @@ std::shared_ptr<ui::element::Element> StackingContext::getOwner() const {
 }
 
 void StackingContext::setOwner(std::shared_ptr<ui::element::Element> owner) {
-    _owner = owner;
+    if (!owner) {
+        const std::string errorMessage("[StackingContext] nullptr provided as owner");
+        TraceLog(LOG_ERROR, errorMessage.c_str());
+    } else
+        _owner = owner;
+}
+
+void StackingContext::setLayer(std::shared_ptr<Layer> layer) {
+    _layer = layer;
+}
+
+std::shared_ptr<Layer> StackingContext::getLayer() const {
+    return _layer.lock();
+}
+
+std::shared_ptr<Layer> StackingContext::getParentLayer() const {
+    if (auto parent = _parent.lock())
+        return parent->getLayer();
+    return nullptr;
+}
+
+void StackingContext::updateLayersElements() {
+    if (auto layer = _layer.lock()) {
+        layer->removeAllElements();
+        for (auto e : _elements)
+            layer->addElement(e.lock());
+    }
 }
 
 std::shared_ptr<StackingContext> StackingContext::AppendChild(std::shared_ptr<StackingContext> parent, std::shared_ptr<StackingContext> child) {
@@ -76,6 +106,9 @@ std::shared_ptr<StackingContext> StackingContext::AppendChild(std::shared_ptr<St
 }
 
 bool StackingContext::IsRequiredFor(std::shared_ptr<ui::element::Element> element) {
+    if (element == nullptr)
+        return false;
+
     const auto style = element->getStyle();
     return style.opacity < 1.0f ||
            style.zIndex != 0 || std::holds_alternative<ui::style::IsolationIsolate>(style.isolation);

@@ -32,8 +32,9 @@ void Root::finalize() {
 }
 
 void Root::propagatePreferredTheme() {
-    std::queue<Element *> queue;
-    queue.push(this);
+    std::queue<std::shared_ptr<Element>> queue;
+    auto self = shared_from_this();
+    queue.push(self);
     std::unordered_set<unsigned int> visitedIds;
 
     while (!queue.empty()) {
@@ -43,12 +44,12 @@ void Root::propagatePreferredTheme() {
         if (visitedIds.contains(node->getId()))
             continue;
 
-        if (node != this)
+        if (node != self)
             node->setPreferredTheme(_preferredTheme);
 
         visitedIds.emplace(node->getId());
         for (auto &child : node->getChildren())
-            queue.push(child.get());
+            queue.push(child);
     }
 }
 
@@ -64,8 +65,9 @@ void Root::onPreferredThemeChanged(ui::style::Theme theme) {
 void Root::calculateLayout() {
     YGNodeCalculateLayout(_yogaNode, YGUndefined, YGUndefined, YGDirectionLTR);
 
-    std::queue<Element *> queue;
-    queue.push(this);
+    std::queue<std::shared_ptr<Element>> queue;
+    auto self = shared_from_this();
+    queue.push(self);
     std::unordered_set<unsigned int> visitedIds;
 
     while (!queue.empty()) {
@@ -79,15 +81,16 @@ void Root::calculateLayout() {
 
         visitedIds.emplace(node->getId());
         for (auto &child : node->getChildren())
-            queue.push(child.get());
+            queue.push(child);
     }
 
     _dirtyLayout = false;
 }
 
 void Root::propagateStyles() {
-    std::queue<Element *> queue;
-    queue.push(this);
+    std::queue<std::shared_ptr<Element>> queue;
+    auto self = shared_from_this();
+    queue.push(self);
     std::unordered_set<unsigned int> visitedIds;
 
     while (!queue.empty()) {
@@ -98,14 +101,14 @@ void Root::propagateStyles() {
             continue;
 
         if (node->_dirtyCachedInheritableProps) {
-            if (node != this) {
+            if (node != self) {
                 node->updateCachedInheritablePropsFrom(node->getParent());
                 node->_dirtyCachedInheritableProps = false;
             }
 
             visitedIds.emplace(node->getId());
             for (auto &child : node->getChildren())
-                queue.push(child.get());
+                queue.push(child);
         }
     }
 

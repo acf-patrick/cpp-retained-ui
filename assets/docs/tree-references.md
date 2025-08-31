@@ -104,34 +104,40 @@ struct Layer {
 };
 ```
 
-**BFS Build Example:**
+**Build Example:**
 
 ```cpp
-std::unique_ptr<Layer> buildLayerTreeBFS(Element* root) {
-    auto rootLayer = std::make_unique<Layer>();
-    rootLayer->owner = root;
+std::unique_ptr<Layer> buildLayerTree(StackingContext* sc, Layer* parentLayer = nullptr) {
+    std::unique_ptr<Layer> layer = nullptr;
 
-    std::queue<std::pair<Element*, Layer*>> q;
-    q.push({root, rootLayer.get()});
+    if (sc->owner->createsLayer) {
+        // Create a dedicated GPU surface
+        layer = std::make_unique<Layer>();
+        layer->owner = sc->owner;
+        sc->layer = layer.get(); // SC knows about its GPU layer
+    } else {
+        // No GPU layer, paint into parent's layer
+        sc->layer = parentLayer;
+    }
 
-    while (!q.empty()) {
-        auto [elem, parentLayer] = q.front(); q.pop();
-
-        for (auto& childPtr : elem->children) {
-            Element* child = childPtr.get();
-            if (needsOwnLayer(child)) {
-                auto childLayer = std::make_unique<Layer>();
-                childLayer->owner = child;
-                parentLayer->children.push_back(std::move(childLayer));
-                q.push({child, parentLayer->children.back().get()});
-            } else {
-                parentLayer->paintNodes.push_back(child);
-                q.push({child, parentLayer});
-            }
+    // Add elements to this layer’s paint list
+    for (Element* e : sc->normalFlow) {
+        if (sc->layer) {
+            sc->layer->paintNodes.push_back(e);
         }
     }
-    return rootLayer;
+
+    // Recurse into children SC
+    for (auto& childSC : sc->children) {
+        auto childLayer = buildLayerTree(childSC.get(), sc->layer);
+        if (childLayer) {
+            sc->layer->children.push_back(std::move(childLayer));
+        }
+    }
+
+    return layer;
 }
+
 ```
 
 **Example Tree:**

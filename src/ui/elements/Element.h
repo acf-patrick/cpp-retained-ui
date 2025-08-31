@@ -107,6 +107,8 @@ class Element {
     ElementId getId() const;
 
     std::shared_ptr<ui::rendering::StackingContext> getParentStackingContext() const;
+    
+    void setStackingContext(std::shared_ptr<ui::rendering::StackingContext> ctx);
     std::shared_ptr<ui::rendering::StackingContext> getStackingContext() const;
 
     ui::style::Layout getLayout() const;
@@ -124,9 +126,6 @@ class Element {
     bool contains(const Vector2 &point) const;
 
     ui::style::Theme getPreferredTheme() const;
-
-    // Update self stacking context based on current style
-    std::shared_ptr<ui::rendering::StackingContext> updateStackingContext();
 
     // Append child to parent's children and set child's parent.
     // The reason behind this function instead of a method is to keep owned
