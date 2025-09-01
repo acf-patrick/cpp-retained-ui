@@ -21,7 +21,7 @@ def hitTest(rootCtx, point):
       for e in ctx.elements:
         if e.contains(point):
           return e
-      for child in ctx.children:
+      for child in ctx.children.reversed():
         stack.push(child)
   return null
 
@@ -33,7 +33,7 @@ def renderCtxTree(rootCtx: StackingContext):
     ctx = stack.pop()
     renderCtx(ctx, clearedLayers)
 #    ctx.children.sort(sortCtxByReverseZIndex)
-    for child in ctx.children:
+    for child in ctx.children.reversed():
       stack.push(child)
 
 def renderCtx(ctx, clearedLayers):
