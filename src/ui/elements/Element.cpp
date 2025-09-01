@@ -31,12 +31,16 @@ Element::~Element() {
     YGNodeFree(_yogaNode);
 }
 
+bool Element::isRoot() const {
+    return _parent.lock() == nullptr;
+}
+
 bool Element::isNotDisplayed() const {
     if (auto display = _layout.display) {
         return *display == ui::style::Display::None;
     }
 
-    return false;
+    return _style.opacity == 0;
 }
 
 void Element::onChildAppended(std::shared_ptr<Element>) { /* Do nothing */ }

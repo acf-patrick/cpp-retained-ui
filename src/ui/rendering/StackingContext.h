@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <set>
 #include <vector>
 
 namespace ui {
@@ -15,7 +16,7 @@ class Element; // forward declaration
 
 namespace rendering {
 
-class Layer; //forward declaration
+class Layer; // forward declaration
 
 class StackingContext {
   public:
@@ -30,15 +31,27 @@ class StackingContext {
     };
 
   private:
-    struct Comparator {
-      bool operator()(const std::shared_ptr<StackingContext>& a, const std::shared_ptr<StackingContext>& b) const {
-        const auto ctxA = a->getContext();
-        const auto ctxB = b->getContext();
+    struct ZIndexComparator {
+        bool operator()(const std::shared_ptr<StackingContext> &a, const std::shared_ptr<StackingContext> &b) const {
+            const auto ctxA = a->getContext();
+            const auto ctxB = b->getContext();
 
-        return ctxA.zIndex <= ctxB.zIndex;
-      }
+            return ctxA.zIndex <= ctxB.zIndex;
+        }
     };
-    
+
+    struct ElementComparatorByZIndex {
+        bool operator()(const std::weak_ptr<ui::element::Element> &a, const std::weak_ptr<ui::element::Element> &b) const {
+            if (auto eltA = a.lock()) {
+                if (auto eltB = b.lock()) {
+                    return eltA->getStyle().zIndex <= eltB->getStyle().zIndex;
+                }
+            }
+
+            return false;
+        }
+    };
+
     static StackingContextId nextId;
     std::weak_ptr<StackingContext> _parent;
     std::weak_ptr<ui::element::Element> _owner;
@@ -57,7 +70,6 @@ class StackingContext {
     void setOwner(std::shared_ptr<ui::element::Element> owner);
 
     std::vector<std::shared_ptr<StackingContext>> getChildren() const;
-    std::vector<std::shared_ptr<StackingContext>> getSortedChildren() const;
 
     // Pass this context's normal flow elements to its layer
     void updateLayersElements();

@@ -113,11 +113,12 @@ std::shared_ptr<ui::element::Element> Layer::getOwner() const {
 bool Layer::IsRequiredFor(std::shared_ptr<ui::element::Element> element) {
     if (!StackingContext::IsRequiredFor(element))
         return false;
+
     if (element == nullptr)
         return false;
 
     const auto style = element->getStyle();
-    return style.opacity < 1.0f;
+    return element->isRoot() || style.opacity < 1.0f;
     /*
         or hasTransform
         or hasFilter

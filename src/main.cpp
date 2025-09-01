@@ -9,6 +9,69 @@
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
 
+/*
+def hitTest(rootCtx, point):
+  stack: Stack[(StackingContext, Bool)] = [(rootCtx, false)]
+  
+  while !stack.empty():
+    ctx, visited = stack.pop()
+    if !visited:
+      stack.push((ctx, true))
+    else:
+      for e in ctx.elements:
+        if e.contains(point):
+          return e
+      for child in ctx.children:
+        stack.push(child)
+  return null
+
+def renderCtxTree(rootCtx: StackingContext):
+  stack: Stack[StackingContext] = [rootCtx]
+  clearedLayers: Set[LayerId] = {}
+
+  while !stack.empty():
+    ctx = stack.pop()
+    renderCtx(ctx, clearedLayers)
+#    ctx.children.sort(sortCtxByReverseZIndex)
+    for child in ctx.children:
+      stack.push(child)
+
+def renderCtx(ctx, clearedLayers):
+  layer = ctx.layer
+  layer.lock()
+  if !clearedLayers.contains(layer.id):
+    layer.clear()
+    clearedLayers.add(layer.id)
+  ctx.owner.render()
+#  ctx.elements.sort(sortElementsByZIndex)
+  for e in ctx.elements:
+    e.render()
+  layer.release()
+
+def compositeLayerTree(rootLayer: Layer):
+  stack: Stack[(Layer, Bool)] = [(rootLayer, false)]
+  while !stack.empty():
+    layer, visited = stack.pop()
+    if !visited:
+      stack.push((layer, true))
+    else:
+      if layer.parent:
+        layer.parent.lock()
+        layer.render() # Apply owner properties then render texture
+        layer.parent.release()
+
+      for child in layer.children:
+        stack.push((child, false))
+
+def renderFrame(rootCtx, rootLayer):
+  renderCtxTree(rootCtx)
+  compositeLayerTree(rootLayer)
+  BeginDrawing()
+  rootLayer.render() # Apply owner properties then render texture
+
+  EndDrawing()
+*/
+
 class Engine {
     struct WindowInitialization {
         WindowInitialization() {
@@ -27,29 +90,28 @@ class Engine {
     std::vector<repository::Repository *> _repositories;
 
     std::shared_ptr<ui::rendering::StackingContext> buildStackingContextTree(std::shared_ptr<ui::element::Element> elementsRoot) const {
-        std::queue<std::shared_ptr<ui::element::Element>> queue;
+        // [currentElement, parentCtx]
+        std::queue<std::pair<std::shared_ptr<ui::element::Element>, std::shared_ptr<ui::rendering::StackingContext>>> queue;
         std::unordered_set<ui::element::Element::ElementId> visitedIds;
 
-        queue.push(elementsRoot);
+        queue.push({elementsRoot, nullptr});
         while (!queue.empty()) {
-            auto e = queue.front();
+            auto [e, parentCtx] = queue.front();
             queue.pop();
             if (visitedIds.contains(e->getId()))
                 continue;
 
             if (ui::rendering::StackingContext::IsRequiredFor(e)) {
                 auto ctx = std::make_shared<ui::rendering::StackingContext>(e);
-                auto parentCtx = e->getParentStackingContext();
                 e->setStackingContext(ctx);
                 ui::rendering::StackingContext::AppendChild(parentCtx, ctx);
             } else {
-                auto parentCtx = e->getParentStackingContext();
                 parentCtx->addElement(e);
                 e->setStackingContext(parentCtx);
             }
 
             for (auto child : e->getChildren())
-                queue.push(child);
+                queue.push({child, e->getStackingContext()});
 
             visitedIds.emplace(e->getId());
         }
@@ -58,27 +120,27 @@ class Engine {
     }
 
     std::shared_ptr<ui::rendering::Layer> buildLayerTree(std::shared_ptr<ui::rendering::StackingContext> rootCtx) const {
-        std::queue<std::shared_ptr<ui::rendering::StackingContext>> queue;
-        queue.push(rootCtx);
+        // [currentCtx, parentLayer]
+        std::queue<std::pair<std::shared_ptr<ui::rendering::StackingContext>, std::shared_ptr<ui::rendering::Layer>>> queue;
+        queue.push({rootCtx, nullptr});
 
         while (!queue.empty()) {
-            auto ctx = queue.front();
+            auto [ctx, parentLayer] = queue.front();
             queue.pop();
             auto ctxOwner = ctx->getOwner();
 
             if (ui::rendering::Layer::IsRequiredFor(ctxOwner)) {
                 auto layer = std::make_shared<ui::rendering::Layer>(ctxOwner);
-                auto parentLayer = ctx->getParentLayer();
                 ctx->setLayer(layer);
                 ui::rendering::Layer::AppendChild(parentLayer, layer);
             } else {
-                // ctx->setLayer(ctx->getParentLayer());
+                ctx->setLayer(parentLayer);
             }
 
             ctx->updateLayersElements();
 
             for (auto child : ctx->getChildren())
-                queue.push(child);
+                queue.push({child, ctx->getLayer()});
         }
 
         return rootCtx->getLayer();

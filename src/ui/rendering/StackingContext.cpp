@@ -27,15 +27,7 @@ StackingContext::StackingContext(std::shared_ptr<ui::element::Element> owner) : 
 StackingContext::~StackingContext() {}
 
 std::vector<std::shared_ptr<StackingContext>> StackingContext::getChildren() const {
-    return _children;
-}
-
-std::vector<std::shared_ptr<StackingContext>> StackingContext::getSortedChildren() const {
-    auto sortedChildren(_children);
-    Comparator comparator;
-
-    std::sort(sortedChildren.begin(), sortedChildren.end(), comparator);
-    return sortedChildren;
+    return std::vector(_children.begin(), _children.end());
 }
 
 StackingContext::Context StackingContext::getContext() const {
@@ -56,6 +48,7 @@ void StackingContext::setParent(std::shared_ptr<StackingContext> parent) {
 
 void StackingContext::appendChild(std::shared_ptr<StackingContext> child) {
     if (child)
+
         _children.push_back(child);
 }
 
@@ -140,7 +133,7 @@ bool StackingContext::IsRequiredFor(std::shared_ptr<ui::element::Element> elemen
         return false;
 
     const auto style = element->getStyle();
-    return style.opacity < 1.0f ||
+    return element->isRoot() || style.opacity < 1.0f ||
            style.zIndex != 0 || std::holds_alternative<ui::style::IsolationIsolate>(style.isolation);
 }
 

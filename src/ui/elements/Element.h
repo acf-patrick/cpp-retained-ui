@@ -98,6 +98,8 @@ class Element {
     // return display == none
     bool isNotDisplayed() const;
 
+    bool isRoot() const;
+
     // Warning : must be called after layout calculation. Compute absolute
     // position of this element from parent's absolute position
     void updateAbsolutePosition();
