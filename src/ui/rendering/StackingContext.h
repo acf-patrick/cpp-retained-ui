@@ -40,7 +40,7 @@ class StackingContext {
         }
     };
 
-    struct ElementComparatorByZIndex {
+    /* struct ElementComparatorByZIndex {
         bool operator()(const std::weak_ptr<ui::element::Element> &a, const std::weak_ptr<ui::element::Element> &b) const {
             if (auto eltA = a.lock()) {
                 if (auto eltB = b.lock()) {
@@ -50,7 +50,7 @@ class StackingContext {
 
             return false;
         }
-    };
+    }; */
 
     static StackingContextId nextId;
     std::weak_ptr<StackingContext> _parent;
@@ -70,9 +70,6 @@ class StackingContext {
     void setOwner(std::shared_ptr<ui::element::Element> owner);
 
     std::vector<std::shared_ptr<StackingContext>> getChildren() const;
-
-    // Pass this context's normal flow elements to its layer
-    void updateLayersElements();
 
     // Render self and children in stack way
     void render();

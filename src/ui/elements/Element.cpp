@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <queue>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace ui {
 namespace element {
@@ -63,14 +62,10 @@ void Element::markInheritableStylesAsDirty() {
     // notify children
     std::queue<Element *> queue;
     queue.push(this);
-    std::unordered_set<ElementId> visitedIds;
 
     while (!queue.empty()) {
         auto e = queue.front();
         queue.pop();
-
-        if (visitedIds.contains(e->getId()))
-            continue;
 
         if (!e->_dirtyCachedInheritableProps) {
             e->_dirtyCachedInheritableProps = true;

@@ -1,8 +1,9 @@
-#include <iostream>
+#include <algorithm>
 #include <memory>
 #include <queue>
 #include <raylib.h>
 #include <repository.h>
+#include <stack>
 #include <ui.h>
 #include <unordered_set>
 
@@ -12,7 +13,7 @@
 /*
 def hitTest(rootCtx, point):
   stack: Stack[(StackingContext, Bool)] = [(rootCtx, false)]
-  
+
   while !stack.empty():
     ctx, visited = stack.pop()
     if !visited:
@@ -92,19 +93,20 @@ class Engine {
     std::shared_ptr<ui::rendering::StackingContext> buildStackingContextTree(std::shared_ptr<ui::element::Element> elementsRoot) const {
         // [currentElement, parentCtx]
         std::queue<std::pair<std::shared_ptr<ui::element::Element>, std::shared_ptr<ui::rendering::StackingContext>>> queue;
-        std::unordered_set<ui::element::Element::ElementId> visitedIds;
+        std::shared_ptr<ui::rendering::StackingContext> rootCtx;
 
         queue.push({elementsRoot, nullptr});
         while (!queue.empty()) {
             auto [e, parentCtx] = queue.front();
             queue.pop();
-            if (visitedIds.contains(e->getId()))
-                continue;
 
             if (ui::rendering::StackingContext::IsRequiredFor(e)) {
                 auto ctx = std::make_shared<ui::rendering::StackingContext>(e);
                 e->setStackingContext(ctx);
                 ui::rendering::StackingContext::AppendChild(parentCtx, ctx);
+
+                if (e == elementsRoot)
+                    rootCtx = e->getStackingContext();
             } else {
                 parentCtx->addElement(e);
                 e->setStackingContext(parentCtx);
@@ -112,18 +114,17 @@ class Engine {
 
             for (auto child : e->getChildren())
                 queue.push({child, e->getStackingContext()});
-
-            visitedIds.emplace(e->getId());
         }
 
-        return elementsRoot->getStackingContext();
+        return rootCtx;
     }
 
     std::shared_ptr<ui::rendering::Layer> buildLayerTree(std::shared_ptr<ui::rendering::StackingContext> rootCtx) const {
         // [currentCtx, parentLayer]
         std::queue<std::pair<std::shared_ptr<ui::rendering::StackingContext>, std::shared_ptr<ui::rendering::Layer>>> queue;
-        queue.push({rootCtx, nullptr});
+        std::shared_ptr<ui::rendering::Layer> rootLayer;
 
+        queue.push({rootCtx, nullptr});
         while (!queue.empty()) {
             auto [ctx, parentLayer] = queue.front();
             queue.pop();
@@ -133,17 +134,18 @@ class Engine {
                 auto layer = std::make_shared<ui::rendering::Layer>(ctxOwner);
                 ctx->setLayer(layer);
                 ui::rendering::Layer::AppendChild(parentLayer, layer);
+
+                if (ctx == rootCtx)
+                    rootLayer = ctx->getLayer();
             } else {
                 ctx->setLayer(parentLayer);
             }
-
-            ctx->updateLayersElements();
 
             for (auto child : ctx->getChildren())
                 queue.push({child, ctx->getLayer()});
         }
 
-        return rootCtx->getLayer();
+        return rootLayer;
     }
 
     void scaffold() {
@@ -200,6 +202,7 @@ class Engine {
         ui::element::Element::AppendChild(imgContainer, image);
         {
             auto style = image->getStyle();
+            style.opacity = 0.125;
             auto &props = *style.drawableContentProps;
             props.objectFit = ui::style::ObjectFit::ScaleDown;
             props.objectPosition = ui::style::ObjectPositionCenter{};
@@ -218,36 +221,69 @@ class Engine {
 
     void renderElements() {
         std::queue<std::shared_ptr<ui::element::Element>> queue;
-        std::unordered_set<ui::element::Element::ElementId> visitedIds;
 
         queue.push(_elementsRoot);
         while (!queue.empty()) {
             auto e = queue.front();
             queue.pop();
-            if (visitedIds.contains(e->getId()))
-                continue;
-
             e->render();
-            visitedIds.emplace(e->getId());
-
             for (auto child : e->getChildren())
                 queue.push(child);
         }
     }
 
-    void render() {
-        std::queue<std::shared_ptr<ui::rendering::StackingContext>> queue;
-        queue.push(_stackingContextRoot);
+    void compositeLayerTree(std::shared_ptr<ui::rendering::Layer> rootLayer) {
+        std::stack<std::pair<std::shared_ptr<ui::rendering::Layer>, bool>> stack;
+        stack.push({rootLayer, false});
 
-        while (!queue.empty()) {
-            auto ctx = queue.front();
-            queue.pop();
+        while (!stack.empty()) {
+            auto [layer, visited] = stack.top();
+            stack.pop();
 
-            if (auto layer = ctx->getLayer()) {
-                auto useGuard = layer->use(); // render onto this layer own texture
-                auto ctxOwner = ctx->getOwner();
+            if (visited) {
+                if (auto parent = layer->getParent()) {
+                    auto useLayerGuard = parent->use();
+                    layer->render();
+                }
+            } else {
+                stack.push({layer, true});
+
+                auto children = layer->getChildren();
+                std::sort(children.begin(), children.end(),
+                          [](std::shared_ptr<ui::rendering::Layer> layerA, std::shared_ptr<ui::rendering::Layer> layerB) {
+                              return layerA->getContext().zIndex > layerB->getContext().zIndex;
+                          });
+
+                for (auto child : children)
+                    stack.push({child, false});
             }
         }
+    }
+
+    void renderStackingContextTree(std::shared_ptr<ui::rendering::StackingContext> rootCtx) {
+        std::stack<std::shared_ptr<ui::rendering::StackingContext>> stack;
+        stack.push(rootCtx);
+
+        while (!stack.empty()) {
+            auto ctx = stack.top();
+            stack.pop();
+
+            ctx->render();
+            auto children = ctx->getChildren();
+            std::sort(children.begin(), children.end(),
+                      [](std::shared_ptr<ui::rendering::StackingContext> ctxA, std::shared_ptr<ui::rendering::StackingContext> ctxB) {
+                          return ctxA->getContext().zIndex > ctxB->getContext().zIndex;
+                      });
+
+            for (auto child : children)
+                stack.push(child);
+        }
+    }
+
+    void render() {
+        renderStackingContextTree(_stackingContextRoot);
+        compositeLayerTree(_layerRoot);
+        _layerRoot->render();
     }
 
   public:

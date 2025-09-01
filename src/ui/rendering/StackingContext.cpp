@@ -95,27 +95,28 @@ std::shared_ptr<Layer> StackingContext::getParentLayer() const {
     return nullptr;
 }
 
-void StackingContext::updateLayersElements() {
-    if (auto layer = _layer.lock()) {
-        layer->removeAllElements();
-        for (auto e : _elements)
-            layer->addElement(e.lock());
-    }
-}
-
 void StackingContext::render() {
-    Layer::UseLayerGuardRef useLayerGuard;
-
-    if (auto layer = _layer.lock()) {
-        useLayerGuard = layer->use();
+    auto layer = getLayer();
+    if (!layer) {
+        TraceLog(LOG_ERROR, "[StackingContext] %d does not have a layer", _id);
+        return;
     }
 
-    _owner.lock()->render();
+    auto owner = getOwner();
+    if (!owner) {
+        TraceLog(LOG_ERROR, "[StackingContext] %d does not have an owner element", _id);
+        return;
+    }
+
+    if (!layer->clean())
+        layer->clearRenderTarget();
+
+    auto useLayerGuard = layer->use();
+    owner->render();
     for (auto e : _elements) {
-        e.lock()->render();
+        if (auto element = e.lock())
+            element->render();
     }
-
-    // TODO
 }
 
 std::shared_ptr<StackingContext> StackingContext::AppendChild(std::shared_ptr<StackingContext> parent, std::shared_ptr<StackingContext> child) {

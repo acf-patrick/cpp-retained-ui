@@ -39,6 +39,7 @@ class Layer {
     using UseLayerGuardRef = std::shared_ptr<UseLayerGuard>;
 
     struct Context {
+        int zIndex; // > 0
         float opacity; // in ]0; 1[
 
         Context() = default;
@@ -52,10 +53,10 @@ class Layer {
     std::vector<std::shared_ptr<Layer>> _children;
     std::weak_ptr<Layer> _parent;
     RenderTexture2D _renderTexture;
+    bool _clean;
 
     // bool _used; // tells if redering are currently performed on this layer's texture
     std::weak_ptr<ui::element::Element> _owner;
-    std::vector<std::weak_ptr<ui::element::Element>> _elements;
 
     void appendChild(std::shared_ptr<Layer> child);
 
@@ -63,7 +64,6 @@ class Layer {
     Layer(std::shared_ptr<ui::element::Element> owner);
     ~Layer();
 
-    void clear();
     void render();
 
     UseLayerGuardRef use();
@@ -82,11 +82,12 @@ class Layer {
     std::shared_ptr<Layer> getParent() const;
     void removeChild(std::shared_ptr<Layer> child);
 
-    void addElement(std::shared_ptr<ui::element::Element> element);
-    void removeElement(std::shared_ptr<ui::element::Element> element);
-    void removeAllElements();
-
-    std::shared_ptr<ui::element::Element> hitTest(const Vector2 &point) const;
+    bool clean() const;
+    
+    // set clean flag to false
+    void markAsDirty();
+    
+    void clearRenderTarget();
 
     static bool IsRequiredFor(std::shared_ptr<ui::element::Element> element);
 

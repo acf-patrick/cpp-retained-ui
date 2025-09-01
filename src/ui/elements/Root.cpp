@@ -4,7 +4,6 @@
 #include "../rendering.h"
 
 #include <queue>
-#include <unordered_set>
 
 namespace ui {
 namespace element {
@@ -35,19 +34,14 @@ void Root::propagatePreferredTheme() {
     std::queue<std::shared_ptr<Element>> queue;
     auto self = shared_from_this();
     queue.push(self);
-    std::unordered_set<unsigned int> visitedIds;
 
     while (!queue.empty()) {
         auto node = queue.front();
         queue.pop();
 
-        if (visitedIds.contains(node->getId()))
-            continue;
-
         if (node != self)
             node->setPreferredTheme(_preferredTheme);
 
-        visitedIds.emplace(node->getId());
         for (auto &child : node->getChildren())
             queue.push(child);
     }
@@ -68,18 +62,12 @@ void Root::calculateLayout() {
     std::queue<std::shared_ptr<Element>> queue;
     auto self = shared_from_this();
     queue.push(self);
-    std::unordered_set<unsigned int> visitedIds;
 
     while (!queue.empty()) {
         auto node = queue.front();
         queue.pop();
 
-        if (visitedIds.contains(node->getId()))
-            continue;
-
         node->updateAbsolutePosition();
-
-        visitedIds.emplace(node->getId());
         for (auto &child : node->getChildren())
             queue.push(child);
     }
@@ -91,14 +79,10 @@ void Root::propagateStyles() {
     std::queue<std::shared_ptr<Element>> queue;
     auto self = shared_from_this();
     queue.push(self);
-    std::unordered_set<unsigned int> visitedIds;
 
     while (!queue.empty()) {
         auto node = queue.front();
         queue.pop();
-
-        if (visitedIds.contains(node->getId()))
-            continue;
 
         if (node->_dirtyCachedInheritableProps) {
             if (node != self) {
@@ -106,7 +90,6 @@ void Root::propagateStyles() {
                 node->_dirtyCachedInheritableProps = false;
             }
 
-            visitedIds.emplace(node->getId());
             for (auto &child : node->getChildren())
                 queue.push(child);
         }

@@ -13,7 +13,7 @@ ui::style::Style elementStyles(ui::style::Theme theme) {
 }
 
 ui::style::Style rootStyles(ui::style::Theme theme) {
-    ui::style::Style style;
+    auto style = elementStyles(theme);
 
     style.inheritables.color = theme == ui::style::Theme::Dark ? WHITE : BLACK;
     style.inheritables.fontSize = 16;
@@ -26,7 +26,7 @@ ui::style::Style rootStyles(ui::style::Theme theme) {
 }
 
 ui::style::Style buttonStyles(ui::style::Theme theme) {
-    ui::style::Style style;
+    auto style = elementStyles(theme);
 
     switch (theme) {
     case ui::style::Theme::Dark: {
@@ -42,7 +42,7 @@ ui::style::Style buttonStyles(ui::style::Theme theme) {
 }
 
 ui::style::Style imageStyles() {
-    ui::style::Style style;
+    auto style = elementStyles(ui::style::Theme::Dark);
 
     auto &props = style.drawableContentProps.emplace();
     props.objectFit = ui::style::ObjectFit::Fill;
