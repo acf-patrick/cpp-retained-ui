@@ -4,6 +4,8 @@
 #include "./BorderColors.h"
 #include "./DrawableContentProps.h"
 #include "./Inheritables.h"
+#include "./Transform.h"
+#include "./TransformOrigin.h"
 #include "./Isolation.h"
 
 #include <optional>
@@ -20,6 +22,8 @@ struct Style {
     std::optional<Color> backgroundColor;
     std::optional<Color> borderColor;
     std::optional<BorderColors> borderColors;
+    std::optional<Transform> transform;
+    TransformOrigin transformOrigin; // default to center
     std::optional<utils::ValueRatio<float>> borderRadius;     // work only with Layout.spacing.border set (even border thickness)
     std::optional<DrawableContentProps> drawableContentProps; // properties for drawable content like image element
 

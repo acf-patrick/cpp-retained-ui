@@ -9,6 +9,7 @@ ui::style::Style elementStyles(ui::style::Theme theme) {
     style.opacity = 1.0;
     style.zIndex = 0;
     style.isolation = ui::style::IsolationAuto{};
+    style.transformOrigin = ui::style::TransformOriginCenter{};
     return style;
 }
 

@@ -39,4 +39,14 @@ using ValueRatioAuto = std::variant<Value<ValueType>, Ratio, Auto>;
 template <typename ValueType>
 using ValueRatio = std::variant<Value<ValueType>, Ratio>;
 
+struct AngleDegree {
+  float value;
+};
+
+struct AngleRadian {
+  float value;
+};
+
+using Angle = std::variant<AngleDegree, AngleRadian>;
+
 }  // namespace utils

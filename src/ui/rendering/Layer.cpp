@@ -15,6 +15,7 @@ namespace rendering {
 Layer::Context::Context(const ui::style::Style &style) {
     opacity = style.opacity;
     zIndex = style.zIndex;
+    transform = style.transform;
 }
 
 Layer::Layer(std::shared_ptr<ui::element::Element> owner)
@@ -35,11 +36,13 @@ Layer::~Layer() {
 
 void Layer::render() {
     const auto ctx = getContext();
-    int alpha = ctx.opacity * 255;
+    int alpha = ctx.opacity * 255; // get correct alpha
     if (alpha < 0)
         alpha = 0;
     if (alpha > 255)
         alpha = 255;
+
+    // TODO : apply transform here
 
     DrawTextureRec(_renderTexture.texture,
                    Rectangle{
@@ -129,9 +132,8 @@ bool Layer::IsRequiredFor(std::shared_ptr<ui::element::Element> element) {
         return false;
 
     const auto style = element->getStyle();
-    return element->isRoot() || style.opacity < 1.0f;
+    return element->isRoot() || style.opacity < 1.0f || style.transform.has_value();
     /*
-        or hasTransform
         or hasFilter
         or hasBackdropEffect
     */

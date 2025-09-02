@@ -12,6 +12,7 @@ namespace rendering {
 StackingContext::Context::Context(const ui::style::Style &style) {
     opacity = style.opacity;
     zIndex = style.zIndex;
+    transform = style.transform;
 }
 
 StackingContext::StackingContext(std::shared_ptr<ui::element::Element> owner) : _owner(owner) {
@@ -117,6 +118,8 @@ void StackingContext::render() {
         if (auto element = e.lock())
             element->render();
     }
+
+    // TODO : mark layer as dirty
 }
 
 std::shared_ptr<StackingContext> StackingContext::AppendChild(std::shared_ptr<StackingContext> parent, std::shared_ptr<StackingContext> child) {
@@ -135,6 +138,7 @@ bool StackingContext::IsRequiredFor(std::shared_ptr<ui::element::Element> elemen
 
     const auto style = element->getStyle();
     return element->isRoot() || style.opacity < 1.0f ||
+           style.transform.has_value() ||
            style.zIndex != 0 || std::holds_alternative<ui::style::IsolationIsolate>(style.isolation);
 }
 

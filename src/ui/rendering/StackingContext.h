@@ -3,11 +3,13 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <optional>
 
 namespace ui {
 
-namespace style {
-class Style; // forward declaration
+namespace style { // forward declaration
+struct Transform;
+struct Style;
 }
 
 namespace element {
@@ -25,6 +27,7 @@ class StackingContext {
     struct Context {
         float opacity; // ]0; 1[
         int zIndex;    // > 0
+        std::optional<ui::style::Transform> transform;
 
         Context() = default;
         Context(const ui::style::Style &style);

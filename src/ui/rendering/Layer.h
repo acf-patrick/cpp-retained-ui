@@ -7,15 +7,15 @@
 #include <vector>
 #include <optional>
 
-// forward declaration
 namespace ui {
 
-namespace style {
+namespace style { // forward declaration
+class Transform;
 class Style;
 }
 
 namespace element {
-class Element;
+class Element; // forward declaration
 }
 
 namespace rendering {
@@ -41,6 +41,7 @@ class Layer {
     struct Context {
         int zIndex; // > 0
         float opacity; // in ]0; 1[
+        std::optional<ui::style::Transform> transform;
 
         Context() = default;
         Context(const ui::style::Style &style);
