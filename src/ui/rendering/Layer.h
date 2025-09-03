@@ -7,10 +7,11 @@
 #include <vector>
 #include <optional>
 
+#include "../styles/Transform.h"
+
 namespace ui {
 
 namespace style { // forward declaration
-class Transform;
 class Style;
 }
 

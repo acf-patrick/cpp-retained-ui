@@ -2,24 +2,26 @@
 
 #include "../utils/types.h"
 
+#include <optional>
+#include <raylib.h>
+
 namespace ui {
 namespace style {
 
-struct TransformTranslate {
-    utils::ValueRatio<float> x;
-    utils::ValueRatio<float> y;
-};
+struct Transform {
+    struct Translate {
+        utils::ValueRatio<float> x;
+        utils::ValueRatio<float> y;
+    };
 
-struct TransformRotate {
-    utils::Angle angle;
-};
+    struct Rotate {
+        utils::Angle angle;
+    };
 
-struct TransformScale {
-    utils::ValueRatio<float> x;
-    utils::ValueRatio<float> y;
+    std::optional<Translate> translation;
+    std::optional<Rotate> rotation;
+    std::optional<Vector2> scale;
 };
-
-using Transform = std::variant<TransformTranslate, TransformRotate, TransformScale>;
 
 } // namespace style
 } // namespace ui

@@ -125,6 +125,9 @@ class Element {
     // Might be invalid if called before layout calculation
     Rectangle getBoundingRect() const;
 
+    Vector2 getPosition() const;
+    Vector2 getSize() const;
+
     bool contains(const Vector2 &point) const;
 
     ui::style::Theme getPreferredTheme() const;

@@ -42,16 +42,90 @@ void Layer::render() {
     if (alpha > 255)
         alpha = 255;
 
-    // TODO : apply transform here
+    auto owner = _owner.lock();
+    const auto transform = ctx.transform;
 
-    DrawTextureRec(_renderTexture.texture,
+    Rectangle dest{
+        .x = 0,
+        .y = 0,
+        .width = (float)_renderTexture.texture.width,
+        .height = (float)_renderTexture.texture.height};
+
+    float rotation = 0.0;
+
+    if (ctx.transform.has_value()) {
+        const auto transform = *ctx.transform;
+        if (auto scale = transform.scale) {
+            dest = {
+                .x = 0,
+                .y = 0,
+                .width = scale->x * _renderTexture.texture.width, // take in count scale
+                .height = scale->y * _renderTexture.texture.height};
+        }
+
+        if (auto tRotation = transform.rotation) {
+            if (auto deg = std::get_if<utils::AngleDegree>(&tRotation->angle)) {
+                rotation = deg->value;
+            } else {
+                rotation = 180 / PI * std::get<utils::AngleRadian>(tRotation->angle).value;
+            }
+        }
+
+        if (auto translation = transform.translation) {
+            if (auto value = std::get_if<utils::Value<float>>(&translation->x)) {
+                dest.x = value->value;
+            } else {
+                auto ratio = std::get<utils::Ratio>(translation->x);
+                dest.x = ratio.ratio * dest.width;
+            }
+
+            if (auto value = std::get_if<utils::Value<float>>(&translation->y)) {
+                dest.y = value->value;
+            } else {
+                auto ratio = std::get<utils::Ratio>(translation->y);
+                dest.y = ratio.ratio * dest.height;
+            }
+        }
+    }
+
+    Vector2 origin;
+    const auto transformOrigin = owner->getStyle().transformOrigin;
+    if (std::holds_alternative<ui::style::TransformOriginCenter>(transformOrigin)) {
+        origin.x = 0.5 * dest.width;
+        origin.y = 0.5 * dest.height;
+    } else {
+        auto originPosition = std::get<ui::style::TransformOriginPosition>(transformOrigin);
+
+        if (auto value = std::get_if<utils::Value<int>>(&originPosition.x)) {
+            origin.x = value->value;
+        } else {
+            auto ratio = std::get<utils::Ratio>(originPosition.x);
+            origin.x = ratio.ratio * dest.width;
+        }
+
+        if (auto value = std::get_if<utils::Value<int>>(&originPosition.y)) {
+            origin.y = value->value;
+        } else {
+            auto ratio = std::get<utils::Ratio>(originPosition.y);
+            origin.y = ratio.ratio * dest.width;
+        }
+    }
+
+    dest.x += origin.x;
+    dest.y += origin.y;
+
+    DrawTexturePro(_renderTexture.texture,
                    Rectangle{
                        .x = 0,
                        .y = 0,
                        .width = (float)_renderTexture.texture.width,
                        .height = -(float)_renderTexture.texture.height},
-                   Vector2{0, 0},
-                   Color{.r = 255, .g = 255, .b = 255, .a = (unsigned char)alpha});
+                   dest, origin, rotation,
+                   Color{
+                       .r = 255,
+                       .g = 255,
+                       .b = 255,
+                       .a = (unsigned char)alpha});
 }
 
 Layer::Context Layer::getContext() const {

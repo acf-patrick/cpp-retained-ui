@@ -195,6 +195,15 @@ class Engine {
 
             auto style = imgContainer->getStyle();
             style.borderColor = WHITE;
+            auto &transform = style.transform.emplace();
+            // transform.rotation = {utils::AngleDegree(32)};
+            auto &translation = transform.translation.emplace();
+            translation.x = utils::Value<float>(-32);
+            translation.y = utils::Value<float>(0);
+            auto& scale = transform.scale.emplace();
+            scale.x = 0.5;
+            scale.y = 0.5;
+
             imgContainer->updateStyle(style);
         }
 
@@ -202,7 +211,7 @@ class Engine {
         ui::element::Element::AppendChild(imgContainer, image);
         {
             auto style = image->getStyle();
-            style.opacity = 0.125;
+            style.opacity = 0.5;
             auto &props = *style.drawableContentProps;
             props.objectFit = ui::style::ObjectFit::ScaleDown;
             props.objectPosition = ui::style::ObjectPositionCenter{};

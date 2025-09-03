@@ -16,6 +16,8 @@ template <typename T>
 struct Value {
   T value;
 
+  Value() = default;
+
   Value(T value) : value(value) {}
 
   bool operator<=>(const Value<T>&) const = default;
@@ -23,6 +25,8 @@ struct Value {
 
 struct Ratio {
   float ratio;
+
+  Ratio() = default;
 
   Ratio(float ratio) : ratio(ratio) {}
 

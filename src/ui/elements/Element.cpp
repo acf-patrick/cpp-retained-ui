@@ -114,6 +114,16 @@ void Element::removeAllChildren() {
     _children.clear();
 }
 
+Vector2 Element::getPosition() const {
+    const auto rect = getBoundingRect();
+    return Vector2 { rect.x, rect.y };
+}
+
+Vector2 Element::getSize() const {
+    const auto rect = getBoundingRect();
+    return Vector2 { rect.width, rect.height };
+}
+
 bool Element::contains(const Vector2 &point) const {
     const auto rect = getBoundingRect();
     return CheckCollisionPointRec(point, rect);
