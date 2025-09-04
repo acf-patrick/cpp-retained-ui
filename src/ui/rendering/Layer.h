@@ -4,8 +4,8 @@
 
 #include <map>
 #include <memory>
-#include <vector>
 #include <optional>
+#include <vector>
 
 #include "../styles/Transform.h"
 
@@ -21,7 +21,7 @@ class Element; // forward declaration
 
 namespace rendering {
 
-class Layer {
+class Layer : public std::enable_shared_from_this<Layer> {
   public:
     using LayerId = unsigned int;
 
@@ -31,16 +31,16 @@ class Layer {
       public:
         UseLayerGuard() = default;
         UseLayerGuard(RenderTexture2D texture) : _texture(texture) { BeginTextureMode(texture); }
-        ~UseLayerGuard() { 
-          if (_texture)
-            EndTextureMode(); 
+        ~UseLayerGuard() {
+            if (_texture)
+                EndTextureMode();
         }
     };
 
     using UseLayerGuardRef = std::shared_ptr<UseLayerGuard>;
 
     struct Context {
-        int zIndex; // > 0
+        int zIndex;    // > 0
         float opacity; // in ]0; 1[
         std::optional<ui::style::Transform> transform;
 
@@ -59,8 +59,6 @@ class Layer {
 
     // bool _used; // tells if redering are currently performed on this layer's texture
     std::weak_ptr<ui::element::Element> _owner;
-
-    void appendChild(std::shared_ptr<Layer> child);
 
   public:
     Layer(std::shared_ptr<ui::element::Element> owner);
@@ -85,21 +83,20 @@ class Layer {
     void removeChild(std::shared_ptr<Layer> child);
 
     bool clean() const;
-    
+
     // set clean flag to false
     void markAsDirty();
-    
+
     void clearRenderTarget();
 
-    static bool IsRequiredFor(std::shared_ptr<ui::element::Element> element);
-
-    static std::shared_ptr<Layer> AppendChild(std::shared_ptr<Layer> parent, std::shared_ptr<Layer> child);
+    void appendChild(std::shared_ptr<Layer> child);
 
     template <typename... Layers>
-    static std::shared_ptr<Layer> AppendChildren(std::shared_ptr<Layer> parent, std::shared_ptr<Layers> &&...layers) {
-        (AppendChild(parent, layers), ...);
-        return parent;
+    void appendChildren(std::shared_ptr<Layer> parent, std::shared_ptr<Layers> &&...layers) {
+        (appendChild(layers), ...);
     }
+
+    static bool IsRequiredFor(std::shared_ptr<ui::element::Element> element);
 };
 
 } // namespace rendering

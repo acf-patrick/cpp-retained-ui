@@ -103,10 +103,11 @@ class Engine {
             if (ui::rendering::StackingContext::IsRequiredFor(e)) {
                 auto ctx = std::make_shared<ui::rendering::StackingContext>(e);
                 e->setStackingContext(ctx);
-                ui::rendering::StackingContext::AppendChild(parentCtx, ctx);
+                if (parentCtx)
+                    parentCtx->appendChild(ctx);
 
                 if (e == elementsRoot)
-                    rootCtx = e->getStackingContext();
+                    rootCtx = ctx;
             } else {
                 parentCtx->addElement(e);
                 e->setStackingContext(parentCtx);
@@ -133,10 +134,11 @@ class Engine {
             if (ui::rendering::Layer::IsRequiredFor(ctxOwner)) {
                 auto layer = std::make_shared<ui::rendering::Layer>(ctxOwner);
                 ctx->setLayer(layer);
-                ui::rendering::Layer::AppendChild(parentLayer, layer);
+                if (parentLayer)
+                    parentLayer->appendChild(layer);
 
                 if (ctx == rootCtx)
-                    rootLayer = ctx->getLayer();
+                    rootLayer = layer;
             } else {
                 ctx->setLayer(parentLayer);
             }
@@ -165,6 +167,26 @@ class Engine {
             view->updateLayout(layout);
         }
 
+        auto rect = std::make_shared<ui::element::View>();
+        ui::element::Element::AppendChild(view, rect);
+        {
+            auto layout = rect->getLayout();
+            auto &size = layout.size.emplace();
+            size.width = utils::Value(64);
+            size.height = utils::Value(64);
+            layout.positionType = ui::style::PositionType::Absolute;
+            auto &position = layout.position.emplace();
+            position.top = utils::Value(0.0f);
+            position.right = utils::Value(0.0f);
+            rect->updateLayout(layout);
+
+            auto style = rect->getStyle();
+            style.backgroundColor = BLUE;
+            style.zIndex = 1;
+            style.isolation = ui::style::IsolationIsolate{};
+            rect->updateStyle(style);
+        }
+
         auto button = std::make_shared<ui::element::Button>();
         // ui::element::Element::AppendChild(view, button);
 
@@ -189,20 +211,20 @@ class Engine {
             auto layout = imgContainer->getLayout();
             layout.spacing.emplace().border = 3;
             auto &size = layout.size.emplace();
-            size.width = utils::Value(480);
-            size.height = utils::Value(300);
+            size.width = utils::Ratio(0.9);
+            size.height = utils::Ratio(0.9);
             imgContainer->updateLayout(layout);
 
             auto style = imgContainer->getStyle();
             style.borderColor = WHITE;
             auto &transform = style.transform.emplace();
-            // transform.rotation = {utils::AngleDegree(32)};
+            // transform.rotation = {utils::AngleRadian(PI/3)};
             auto &translation = transform.translation.emplace();
-            translation.x = utils::Value<float>(-32);
-            translation.y = utils::Value<float>(0);
+            /*translation.x = utils::Value<float>(48);
+            translation.y = utils::Value<float>(-48);
             auto& scale = transform.scale.emplace();
-            scale.x = 0.5;
-            scale.y = 0.5;
+            scale.x = 0.75;
+            scale.y = 0.75;*/
 
             imgContainer->updateStyle(style);
         }
@@ -211,7 +233,7 @@ class Engine {
         ui::element::Element::AppendChild(imgContainer, image);
         {
             auto style = image->getStyle();
-            style.opacity = 0.5;
+            style.opacity = 1;
             auto &props = *style.drawableContentProps;
             props.objectFit = ui::style::ObjectFit::ScaleDown;
             props.objectPosition = ui::style::ObjectPositionCenter{};
@@ -278,6 +300,7 @@ class Engine {
             stack.pop();
 
             ctx->render();
+
             auto children = ctx->getChildren();
             std::sort(children.begin(), children.end(),
                       [](std::shared_ptr<ui::rendering::StackingContext> ctxA, std::shared_ptr<ui::rendering::StackingContext> ctxB) {

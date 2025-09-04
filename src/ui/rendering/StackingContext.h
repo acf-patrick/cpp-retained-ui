@@ -1,9 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <set>
 #include <vector>
-#include <optional>
 
 #include "../styles/Transform.h"
 
@@ -21,7 +21,7 @@ namespace rendering {
 
 class Layer; // forward declaration
 
-class StackingContext {
+class StackingContext : public std::enable_shared_from_this<StackingContext> {
   public:
     using StackingContextId = unsigned int;
 
@@ -64,8 +64,6 @@ class StackingContext {
     std::weak_ptr<Layer> _layer; // optional layer if GPU surface is required
     StackingContextId _id;
 
-    void appendChild(std::shared_ptr<StackingContext> child);
-
   public:
     StackingContext(std::shared_ptr<ui::element::Element> owner);
     ~StackingContext();
@@ -91,15 +89,14 @@ class StackingContext {
     void addElement(std::shared_ptr<ui::element::Element> element);
     void removeElement(std::shared_ptr<ui::element::Element> element);
 
-    static bool IsRequiredFor(std::shared_ptr<ui::element::Element> element);
-
-    static std::shared_ptr<StackingContext> AppendChild(std::shared_ptr<StackingContext> parent, std::shared_ptr<StackingContext> child);
+    void appendChild(std::shared_ptr<StackingContext> child);
 
     template <typename... Contexts>
-    static std::shared_ptr<StackingContext> AppendChildren(std::shared_ptr<StackingContext> parent, std::shared_ptr<Contexts> &&...contexts) {
-        (AppendChild(parent, contexts), ...);
-        return parent;
+    void appendChildren(std::shared_ptr<Contexts> &&...contexts) {
+        (appendChild(contexts), ...);
     }
+
+    static bool IsRequiredFor(std::shared_ptr<ui::element::Element> element);
 };
 
 } // namespace rendering

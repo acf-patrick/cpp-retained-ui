@@ -48,9 +48,10 @@ void StackingContext::setParent(std::shared_ptr<StackingContext> parent) {
 }
 
 void StackingContext::appendChild(std::shared_ptr<StackingContext> child) {
-    if (child)
+    if (!child) return;
 
-        _children.push_back(child);
+    _children.push_back(child);
+    child->setParent(shared_from_this());
 }
 
 void StackingContext::removeChild(std::shared_ptr<StackingContext> child) {
@@ -113,23 +114,17 @@ void StackingContext::render() {
         layer->clearRenderTarget();
 
     auto useLayerGuard = layer->use();
-    owner->render();
+
+    if (!owner->isNotDisplayed())
+        owner->render();
+
     for (auto e : _elements) {
         if (auto element = e.lock())
-            element->render();
+            if (!element->isNotDisplayed())
+                element->render();
     }
 
     // TODO : mark layer as dirty
-}
-
-std::shared_ptr<StackingContext> StackingContext::AppendChild(std::shared_ptr<StackingContext> parent, std::shared_ptr<StackingContext> child) {
-    if (parent == nullptr || child == nullptr)
-        return parent;
-
-    parent->appendChild(child);
-    child->setParent(parent);
-
-    return parent;
 }
 
 bool StackingContext::IsRequiredFor(std::shared_ptr<ui::element::Element> element) {

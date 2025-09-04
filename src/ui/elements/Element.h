@@ -95,6 +95,8 @@ class Element {
     // will cause undefined behavior in inherited properties update
     void updateStyle(const ui::style::Style &style);
 
+    bool hasItsOwnStackingContext() const;
+
     // return display == none
     bool isNotDisplayed() const;
 

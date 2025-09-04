@@ -34,6 +34,13 @@ bool Element::isRoot() const {
     return _parent.lock() == nullptr;
 }
 
+bool Element::hasItsOwnStackingContext() const {
+    if (auto ctx = _stackingContext.lock()) {
+        return ctx->getOwner().get() == this;
+    }
+    return false;
+}
+
 bool Element::isNotDisplayed() const {
     if (auto display = _layout.display) {
         return *display == ui::style::Display::None;
@@ -116,12 +123,12 @@ void Element::removeAllChildren() {
 
 Vector2 Element::getPosition() const {
     const auto rect = getBoundingRect();
-    return Vector2 { rect.x, rect.y };
+    return Vector2{rect.x, rect.y};
 }
 
 Vector2 Element::getSize() const {
     const auto rect = getBoundingRect();
-    return Vector2 { rect.width, rect.height };
+    return Vector2{rect.width, rect.height};
 }
 
 bool Element::contains(const Vector2 &point) const {

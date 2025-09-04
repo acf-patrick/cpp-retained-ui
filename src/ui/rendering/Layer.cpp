@@ -149,8 +149,10 @@ std::vector<std::shared_ptr<Layer>> Layer::getChildren() const {
 }
 
 void Layer::appendChild(std::shared_ptr<Layer> child) {
-    if (child)
-        _children.push_back(child);
+    if (!child) return;
+    
+    _children.push_back(child);
+    child->setParent(shared_from_this());
 }
 
 void Layer::removeChild(std::shared_ptr<Layer> child) {
@@ -206,21 +208,14 @@ bool Layer::IsRequiredFor(std::shared_ptr<ui::element::Element> element) {
         return false;
 
     const auto style = element->getStyle();
-    return element->isRoot() || style.opacity < 1.0f || style.transform.has_value();
+    return  element->isRoot() || 
+            style.opacity < 1.0f ||   
+            style.transform.has_value() || 
+            std::holds_alternative<ui::style::IsolationIsolate>(style.isolation);
     /*
         or hasFilter
         or hasBackdropEffect
     */
-}
-
-std::shared_ptr<Layer> Layer::AppendChild(std::shared_ptr<Layer> parent, std::shared_ptr<Layer> child) {
-    if (parent == nullptr || child == nullptr)
-        return parent;
-
-    parent->appendChild(child);
-    child->setParent(parent);
-
-    return parent;
 }
 
 } // namespace rendering
