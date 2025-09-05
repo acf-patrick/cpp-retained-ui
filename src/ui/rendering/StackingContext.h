@@ -32,30 +32,11 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
 
         Context() = default;
         Context(const ui::style::Style &style);
+
+        bool operator<=>(const Context&) const = default;
     };
 
   private:
-    struct ZIndexComparator {
-        bool operator()(const std::shared_ptr<StackingContext> &a, const std::shared_ptr<StackingContext> &b) const {
-            const auto ctxA = a->getContext();
-            const auto ctxB = b->getContext();
-
-            return ctxA.zIndex <= ctxB.zIndex;
-        }
-    };
-
-    /* struct ElementComparatorByZIndex {
-        bool operator()(const std::weak_ptr<ui::element::Element> &a, const std::weak_ptr<ui::element::Element> &b) const {
-            if (auto eltA = a.lock()) {
-                if (auto eltB = b.lock()) {
-                    return eltA->getStyle().zIndex <= eltB->getStyle().zIndex;
-                }
-            }
-
-            return false;
-        }
-    }; */
-
     static StackingContextId nextId;
     std::weak_ptr<StackingContext> _parent;
     std::weak_ptr<ui::element::Element> _owner;
@@ -63,6 +44,8 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
     std::vector<std::weak_ptr<ui::element::Element>> _elements;
     std::weak_ptr<Layer> _layer; // optional layer if GPU surface is required
     StackingContextId _id;
+
+    void sortChildrenByZIndex();
 
   public:
     StackingContext(std::shared_ptr<ui::element::Element> owner);
@@ -86,8 +69,21 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
     void setParent(std::shared_ptr<StackingContext> parent);
     void removeChild(std::shared_ptr<StackingContext> child);
 
+    // Returns elements on this stacking context
+    std::vector<std::shared_ptr<ui::element::Element>> getElements() const;
+
+    // Remove provided elements as managed by this stacking context
+    void revokeElements(const std::set<std::shared_ptr<ui::element::Element>>& elements);
+
+    bool hasItsOwnLayer() const;
+    bool needsItsOwnLayer() const;
+
+    // Sort parent's children
+    void repositionInParent();
+
     void addElement(std::shared_ptr<ui::element::Element> element);
     void removeElement(std::shared_ptr<ui::element::Element> element);
+    void replaceChild(std::shared_ptr<StackingContext> oldCtx, std::shared_ptr<StackingContext> newCtx);
 
     void appendChild(std::shared_ptr<StackingContext> child);
 
@@ -95,8 +91,10 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
     void appendChildren(std::shared_ptr<Contexts> &&...contexts) {
         (appendChild(contexts), ...);
     }
+    
+    static std::shared_ptr<StackingContext> BuildTree(std::shared_ptr<ui::element::Element> element);
 
-    static bool IsRequiredFor(std::shared_ptr<ui::element::Element> element);
+    static bool IsRequiredFor(std::shared_ptr<const ui::element::Element> element);
 };
 
 } // namespace rendering

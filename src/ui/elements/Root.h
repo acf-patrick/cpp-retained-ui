@@ -19,6 +19,7 @@ class Root : public Element {
 
   private:
     void onLayoutDirtyFlagTriggered() override;
+    void onDirtyCachedInheritableStylesTriggered() override;
     void onPreferredThemeChanged(ui::style::Theme theme) override;
 
   public:

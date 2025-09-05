@@ -45,10 +45,14 @@ using ValueRatio = std::variant<Value<ValueType>, Ratio>;
 
 struct AngleDegree {
   float value;
+
+  bool operator<=>(const AngleDegree&) const = default;
 };
 
 struct AngleRadian {
   float value;
+
+  bool operator<=>(const AngleRadian&) const = default;
 };
 
 using Angle = std::variant<AngleDegree, AngleRadian>;

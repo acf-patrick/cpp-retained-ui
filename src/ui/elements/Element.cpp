@@ -41,6 +41,11 @@ bool Element::hasItsOwnStackingContext() const {
     return false;
 }
 
+bool Element::needsItsOwnStackingContext() const {
+    auto self = shared_from_this();
+    return ui::rendering::StackingContext::IsRequiredFor(self);
+}
+
 bool Element::isNotDisplayed() const {
     if (auto display = _layout.display) {
         return *display == ui::style::Display::None;
@@ -49,20 +54,24 @@ bool Element::isNotDisplayed() const {
     return _style.opacity == 0;
 }
 
+void Element::onChildRemoved(std::shared_ptr<Element>) { /* Do nothing */ }
+
 void Element::onChildAppended(std::shared_ptr<Element>) { /* Do nothing */ }
 
 void Element::onLayoutDirtyFlagTriggered() { /* Do nothing */ }
 
-void Element::onStyleDirtyFlagTriggered() { /* Do nothing */ }
+void Element::onDirtyCachedInheritableStylesTriggered() { /* Do nothing */ }
 
-void Element::onPreferredThemeChanged(ui::style::Theme theme) { /* Do nothing */ }
+void Element::onPreferredThemeChanged(ui::style::Theme theme) {
+    updateStyle(ui::defaults::elementStyles(theme));
+}
 
 void Element::markInheritableStylesAsDirty() {
     // walk up the tree
     for (auto parent = _parent.lock(); parent; parent = parent->getParent()) {
         if (!parent->_dirtyCachedInheritableProps) {
             parent->_dirtyCachedInheritableProps = true;
-            parent->onStyleDirtyFlagTriggered();
+            parent->onDirtyCachedInheritableStylesTriggered();
         }
     }
 
@@ -76,7 +85,7 @@ void Element::markInheritableStylesAsDirty() {
 
         if (!e->_dirtyCachedInheritableProps) {
             e->_dirtyCachedInheritableProps = true;
-            e->onStyleDirtyFlagTriggered();
+            e->onDirtyCachedInheritableStylesTriggered();
 
             for (auto child : e->_children)
                 queue.push(child.get());
@@ -104,10 +113,10 @@ Element &Element::appendChild(std::shared_ptr<Element> child) {
     }
 
     _children.push_back(child);
+    child->setParent(shared_from_this());
     YGNodeInsertChild(_yogaNode, child->_yogaNode, _children.size() - 1);
     onChildAppended(child);
 
-    child->setParent(shared_from_this());
     return self;
 }
 
@@ -117,6 +126,8 @@ void Element::removeChild(std::shared_ptr<Element> child) {
         YGNodeRemoveChild(_yogaNode, child->_yogaNode);
         (*it)->_parent.reset();
         _children.erase(it);
+
+        onChildRemoved(child);
     }
 }
 
@@ -198,6 +209,45 @@ void Element::updateStyle(const style::Style &style) {
     }
 
     _style = style;
+    checkForStackingContextUpdate();
+}
+
+void Element::checkForStackingContextUpdate() {
+    auto ctx = _stackingContext.lock();
+    if (!ctx)
+        return;
+
+    if (!hasItsOwnStackingContext()) {
+        if (auto parentCtx = ctx->getParent();
+            parentCtx != nullptr && needsItsOwnStackingContext()) {
+
+            ctx = ui::rendering::StackingContext::BuildTree(shared_from_this());
+            parentCtx->appendChild(ctx);
+
+            // To myself: Elements under this element must be managed by the new context or its child contexts
+            // Hence we remove them from the parent context
+
+            auto ctxElements = ctx->getElements();
+            std::set<std::shared_ptr<ui::element::Element>> toRevoke(ctxElements.begin(), ctxElements.end());
+            parentCtx->revokeElements(toRevoke);
+
+            _stackingContext = ctx;
+        }
+    } else {
+        if (!needsItsOwnStackingContext()) {
+            // TODO : we have to reconstruct parent context
+            if (auto parent = ctx->getParent()) {
+                if (auto parentOwner = parent->getOwner()) {
+                    auto newParent = ui::rendering::StackingContext::BuildTree(parentOwner);
+                    if (auto parentsParent = parent->getParent()) {
+                        parentsParent->replaceChild(parent, newParent);
+                    }
+                }
+            }
+        } else if (ctx->getContext().zIndex != _style.zIndex) {
+            ctx->repositionInParent();
+        }
+    }
 }
 
 void Element::updateLayout(const style::Layout &layout) {
@@ -638,7 +688,6 @@ void Element::setPreferredTheme(ui::style::Theme theme) {
     _preferredTheme = theme;
 
     if (prev != _preferredTheme) {
-        updateStyle(ui::defaults::elementStyles(_preferredTheme));
         onPreferredThemeChanged(_preferredTheme);
     }
 }

@@ -21,7 +21,7 @@ Layer::Context::Context(const ui::style::Style &style) {
 Layer::Layer(std::shared_ptr<ui::element::Element> owner)
     : _owner(owner) {
     _id = nextId++;
-    _clean = true;
+    _cleanRenderTexture = true;
     _renderTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
     if (_renderTexture.id == 0) {
         const std::string errorMessage("[Layer] Unable to create render texture.");
@@ -126,6 +126,8 @@ void Layer::render() {
                        .g = 255,
                        .b = 255,
                        .a = (unsigned char)alpha});
+
+    _cleanRenderTexture = false;
 }
 
 Layer::Context Layer::getContext() const {
@@ -148,20 +150,29 @@ std::vector<std::shared_ptr<Layer>> Layer::getChildren() const {
     return _children;
 }
 
+void Layer::sortChildrenByZIndex() {
+    std::sort(
+        _children.begin(),
+        _children.end(),
+        [](const std::shared_ptr<Layer> &ctxA, const std::shared_ptr<Layer> &ctxB) {
+            return ctxA->getContext().zIndex >= ctxB->getContext().zIndex;
+        });
+}
+
 void Layer::appendChild(std::shared_ptr<Layer> child) {
-    if (!child) return;
-    
+    if (!child)
+        return;
+
     _children.push_back(child);
+    sortChildrenByZIndex();
     child->setParent(shared_from_this());
 }
 
 void Layer::removeChild(std::shared_ptr<Layer> child) {
-    if (child)
+    if (child) {
         _children.erase(std::remove(_children.begin(), _children.end(), child));
-}
-
-void Layer::compositeChildren() {
-    //   _owner
+        sortChildrenByZIndex();
+    }
 }
 
 Layer::UseLayerGuardRef Layer::use() {
@@ -184,8 +195,8 @@ std::shared_ptr<ui::element::Element> Layer::getOwner() const {
     return _owner.lock();
 }
 
-bool Layer::clean() const {
-    return _clean;
+bool Layer::isClean() const {
+    return _cleanRenderTexture;
 }
 
 void Layer::clearRenderTarget() {
@@ -193,14 +204,10 @@ void Layer::clearRenderTarget() {
     ClearBackground(BLANK);
     EndTextureMode();
 
-    _clean = true;
+    _cleanRenderTexture = true;
 }
 
-void Layer::markAsDirty() {
-    _clean = false;
-}
-
-bool Layer::IsRequiredFor(std::shared_ptr<ui::element::Element> element) {
+bool Layer::IsRequiredFor(std::shared_ptr<const ui::element::Element> element) {
     if (!StackingContext::IsRequiredFor(element))
         return false;
 
@@ -208,10 +215,10 @@ bool Layer::IsRequiredFor(std::shared_ptr<ui::element::Element> element) {
         return false;
 
     const auto style = element->getStyle();
-    return  element->isRoot() || 
-            style.opacity < 1.0f ||   
-            style.transform.has_value() || 
-            std::holds_alternative<ui::style::IsolationIsolate>(style.isolation);
+    return element->isRoot() ||
+           style.opacity < 1.0f ||
+           style.transform.has_value() ||
+           std::holds_alternative<ui::style::IsolationIsolate>(style.isolation);
     /*
         or hasFilter
         or hasBackdropEffect

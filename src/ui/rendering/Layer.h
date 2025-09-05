@@ -55,10 +55,12 @@ class Layer : public std::enable_shared_from_this<Layer> {
     std::vector<std::shared_ptr<Layer>> _children;
     std::weak_ptr<Layer> _parent;
     RenderTexture2D _renderTexture;
-    bool _clean;
+    bool _cleanRenderTexture;
 
     // bool _used; // tells if redering are currently performed on this layer's texture
     std::weak_ptr<ui::element::Element> _owner;
+
+    void sortChildrenByZIndex();
 
   public:
     Layer(std::shared_ptr<ui::element::Element> owner);
@@ -67,8 +69,6 @@ class Layer : public std::enable_shared_from_this<Layer> {
     void render();
 
     UseLayerGuardRef use();
-
-    void compositeChildren();
 
     void setOwner(std::shared_ptr<ui::element::Element> owner);
     std::shared_ptr<ui::element::Element> getOwner() const;
@@ -80,23 +80,21 @@ class Layer : public std::enable_shared_from_this<Layer> {
     void setParent(std::shared_ptr<Layer> parent);
 
     std::shared_ptr<Layer> getParent() const;
-    void removeChild(std::shared_ptr<Layer> child);
 
-    bool clean() const;
-
-    // set clean flag to false
-    void markAsDirty();
+    // returns `true` if render texture has been cleared
+    bool isClean() const;
 
     void clearRenderTarget();
 
     void appendChild(std::shared_ptr<Layer> child);
+    void removeChild(std::shared_ptr<Layer> child);
 
     template <typename... Layers>
     void appendChildren(std::shared_ptr<Layer> parent, std::shared_ptr<Layers> &&...layers) {
         (appendChild(layers), ...);
     }
 
-    static bool IsRequiredFor(std::shared_ptr<ui::element::Element> element);
+    static bool IsRequiredFor(std::shared_ptr<const ui::element::Element> element);
 };
 
 } // namespace rendering

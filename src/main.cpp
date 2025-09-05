@@ -74,6 +74,10 @@ def renderFrame(rootCtx, rootLayer):
 */
 
 class Engine {
+    /**
+     * RAII window initialization/destrucation
+     * makes sure to run only after every other attributes have been destroyed
+     */
     struct WindowInitialization {
         WindowInitialization() {
             InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Retained UI with raylib");
@@ -89,35 +93,20 @@ class Engine {
     std::shared_ptr<ui::rendering::StackingContext> _stackingContextRoot;
     std::shared_ptr<ui::rendering::Layer> _layerRoot;
     std::vector<repository::Repository *> _repositories;
+    bool _requestNewFrame;
 
-    std::shared_ptr<ui::rendering::StackingContext> buildStackingContextTree(std::shared_ptr<ui::element::Element> elementsRoot) const {
-        // [currentElement, parentCtx]
-        std::queue<std::pair<std::shared_ptr<ui::element::Element>, std::shared_ptr<ui::rendering::StackingContext>>> queue;
-        std::shared_ptr<ui::rendering::StackingContext> rootCtx;
+    // created for debug purposes
+    void _renderElements() {
+        std::queue<std::shared_ptr<ui::element::Element>> queue;
 
-        queue.push({elementsRoot, nullptr});
+        queue.push(_elementsRoot);
         while (!queue.empty()) {
-            auto [e, parentCtx] = queue.front();
+            auto e = queue.front();
             queue.pop();
-
-            if (ui::rendering::StackingContext::IsRequiredFor(e)) {
-                auto ctx = std::make_shared<ui::rendering::StackingContext>(e);
-                e->setStackingContext(ctx);
-                if (parentCtx)
-                    parentCtx->appendChild(ctx);
-
-                if (e == elementsRoot)
-                    rootCtx = ctx;
-            } else {
-                parentCtx->addElement(e);
-                e->setStackingContext(parentCtx);
-            }
-
+            e->render();
             for (auto child : e->getChildren())
-                queue.push({child, e->getStackingContext()});
+                queue.push(child);
         }
-
-        return rootCtx;
     }
 
     std::shared_ptr<ui::rendering::Layer> buildLayerTree(std::shared_ptr<ui::rendering::StackingContext> rootCtx) const {
@@ -250,19 +239,6 @@ class Engine {
         _elementsRoot->finalize();
     }
 
-    void renderElements() {
-        std::queue<std::shared_ptr<ui::element::Element>> queue;
-
-        queue.push(_elementsRoot);
-        while (!queue.empty()) {
-            auto e = queue.front();
-            queue.pop();
-            e->render();
-            for (auto child : e->getChildren())
-                queue.push(child);
-        }
-    }
-
     void compositeLayerTree(std::shared_ptr<ui::rendering::Layer> rootLayer) {
         std::stack<std::pair<std::shared_ptr<ui::rendering::Layer>, bool>> stack;
         stack.push({rootLayer, false});
@@ -278,14 +254,7 @@ class Engine {
                 }
             } else {
                 stack.push({layer, true});
-
-                auto children = layer->getChildren();
-                std::sort(children.begin(), children.end(),
-                          [](std::shared_ptr<ui::rendering::Layer> layerA, std::shared_ptr<ui::rendering::Layer> layerB) {
-                              return layerA->getContext().zIndex > layerB->getContext().zIndex;
-                          });
-
-                for (auto child : children)
+                for (auto child : layer->getChildren())
                     stack.push({child, false});
             }
         }
@@ -300,22 +269,17 @@ class Engine {
             stack.pop();
 
             ctx->render();
-
-            auto children = ctx->getChildren();
-            std::sort(children.begin(), children.end(),
-                      [](std::shared_ptr<ui::rendering::StackingContext> ctxA, std::shared_ptr<ui::rendering::StackingContext> ctxB) {
-                          return ctxA->getContext().zIndex > ctxB->getContext().zIndex;
-                      });
-
-            for (auto child : children)
+            for (auto child : ctx->getChildren())
                 stack.push(child);
         }
     }
 
     void render() {
+        BeginDrawing();
         renderStackingContextTree(_stackingContextRoot);
         compositeLayerTree(_layerRoot);
         _layerRoot->render();
+        EndDrawing();
     }
 
   public:
@@ -323,8 +287,9 @@ class Engine {
         _repositories = repository::InitRepositories();
         scaffold();
 
-        _stackingContextRoot = buildStackingContextTree(_elementsRoot);
+        _stackingContextRoot = ui::rendering::StackingContext::BuildTree(_elementsRoot);
         _layerRoot = buildLayerTree(_stackingContextRoot);
+        _requestNewFrame = true;
 
         SetTraceLogLevel(LOG_DEBUG);
         SetTargetFPS(60);
@@ -336,10 +301,17 @@ class Engine {
 
     void run() {
         while (!WindowShouldClose()) {
+            // prevent window from freezing
+            PollInputEvents();
+
+            // update inherited properties
+            // and check for layout dirty flag
             _elementsRoot->update();
-            BeginDrawing();
-            render();
-            EndDrawing();
+
+            if (_requestNewFrame) {
+                render();
+                _requestNewFrame = false;
+            }
         }
     }
 };

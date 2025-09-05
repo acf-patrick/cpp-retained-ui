@@ -51,6 +51,11 @@ void Root::onLayoutDirtyFlagTriggered() {
     _dirtyLayout = true;
 }
 
+void Root::onDirtyCachedInheritableStylesTriggered() {
+    propagateStyles();
+    _dirtyCachedInheritableProps = false; // indicate we have cleared that flag
+}
+
 void Root::onPreferredThemeChanged(ui::style::Theme theme) {
     updateStyle(ui::defaults::rootStyles(theme));
     propagatePreferredTheme();

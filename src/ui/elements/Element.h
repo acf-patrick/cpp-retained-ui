@@ -22,9 +22,9 @@ class StackingContext;
 namespace element {
 
 /**
- * Instantiating this class on its own without using `std::shared_ptr` and `std::mkae_shared`
- * potentially throws an exception or undefined behavior. 
-*/
+ * Instantiating this class on its own without using `std::shared_ptr` or `std::make_shared`
+ * potentially throws an exception and leads to undefined behavior.
+ */
 class Element : public std::enable_shared_from_this<Element> {
   public:
     using ElementId = unsigned int;
@@ -69,9 +69,13 @@ class Element : public std::enable_shared_from_this<Element> {
     void markInheritableStylesAsDirty();
     void markLayoutAsDirty();
 
+    // Perform checks after style update
+    void checkForStackingContextUpdate();
+
     virtual void onPreferredThemeChanged(ui::style::Theme theme);
     virtual void onChildAppended(std::shared_ptr<Element> child);
-    virtual void onStyleDirtyFlagTriggered();
+    virtual void onChildRemoved(std::shared_ptr<Element> child);
+    virtual void onDirtyCachedInheritableStylesTriggered();
     virtual void onLayoutDirtyFlagTriggered();
 
   protected:
@@ -84,8 +88,14 @@ class Element : public std::enable_shared_from_this<Element> {
     // Custom implementation for inherited classes should only render themselves not their children.
     virtual void render();
 
-    void removeChild(std::shared_ptr<Element> child);
+    Element &appendChild(std::shared_ptr<Element> child);
 
+    template <typename... Elements>
+    void appendChildren(std::shared_ptr<Elements> &&...children) {
+        (appendChild(children), ...);
+    }
+
+    void removeChild(std::shared_ptr<Element> child);
     void removeAllChildren();
 
     // Dirty flag won't be broadcast if this element does not have a parent element.
@@ -98,6 +108,8 @@ class Element : public std::enable_shared_from_this<Element> {
     void updateStyle(const ui::style::Style &style);
 
     bool hasItsOwnStackingContext() const;
+
+    bool needsItsOwnStackingContext() const;
 
     // return display == none
     bool isNotDisplayed() const;
@@ -135,13 +147,6 @@ class Element : public std::enable_shared_from_this<Element> {
     bool contains(const Vector2 &point) const;
 
     ui::style::Theme getPreferredTheme() const;
-
-    Element& appendChild(std::shared_ptr<Element> child);
-
-    template <typename... Elements>
-    void appendChildren(std::shared_ptr<Elements> &&...children) {
-        (appendChild(children), ...);
-    }
 
     friend class Root;
 };
