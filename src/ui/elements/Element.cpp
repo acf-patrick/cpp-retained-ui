@@ -90,9 +90,10 @@ void Element::markLayoutAsDirty() {
         parent->onLayoutDirtyFlagTriggered();
 }
 
-void Element::appendChild(std::shared_ptr<Element> child) {
+Element &Element::appendChild(std::shared_ptr<Element> child) {
+    auto &self = *this;
     if (!child)
-        return;
+        return self;
 
     for (auto parent = getParent(); parent; parent = parent->getParent()) {
         if (parent == child) {
@@ -105,6 +106,9 @@ void Element::appendChild(std::shared_ptr<Element> child) {
     _children.push_back(child);
     YGNodeInsertChild(_yogaNode, child->_yogaNode, _children.size() - 1);
     onChildAppended(child);
+
+    child->setParent(shared_from_this());
+    return self;
 }
 
 void Element::removeChild(std::shared_ptr<Element> child) {
@@ -650,17 +654,6 @@ void Element::updateCachedInheritablePropsFrom(std::shared_ptr<Element> element)
 
     const auto &newProps = element->_cachedInheritableProps;
     _cachedInheritableProps.updateInheritedFields(_style.inheritables, newProps);
-}
-
-std::shared_ptr<Element> Element::AppendChild(std::shared_ptr<Element> parent,
-                                              std::shared_ptr<Element> child) {
-    if (child == nullptr || parent == nullptr)
-        return parent;
-
-    parent->appendChild(child);
-    child->setParent(parent);
-
-    return parent;
 }
 
 } // namespace element

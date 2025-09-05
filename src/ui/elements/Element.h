@@ -21,7 +21,11 @@ class StackingContext;
 
 namespace element {
 
-class Element {
+/**
+ * Instantiating this class on its own without using `std::shared_ptr` and `std::mkae_shared`
+ * potentially throws an exception or undefined behavior. 
+*/
+class Element : public std::enable_shared_from_this<Element> {
   public:
     using ElementId = unsigned int;
 
@@ -56,8 +60,6 @@ class Element {
     void updateCachedInheritablePropsFrom(std::shared_ptr<Element> element);
 
   protected:
-    void appendChild(std::shared_ptr<Element> child);
-
     // used by AppendChild methods
     void setParent(std::shared_ptr<Element> parent);
 
@@ -111,7 +113,7 @@ class Element {
     ElementId getId() const;
 
     std::shared_ptr<ui::rendering::StackingContext> getParentStackingContext() const;
-    
+
     void setStackingContext(std::shared_ptr<ui::rendering::StackingContext> ctx);
     std::shared_ptr<ui::rendering::StackingContext> getStackingContext() const;
 
@@ -134,20 +136,11 @@ class Element {
 
     ui::style::Theme getPreferredTheme() const;
 
-    // Append child to parent's children and set child's parent.
-    // The reason behind this function instead of a method is to keep owned
-    // reference to both parent and child element by deciding to wrap parent with
-    // weak_ptr
-    // @return parent element
-    static std::shared_ptr<Element> AppendChild(std::shared_ptr<Element> parent,
-                                                std::shared_ptr<Element> child);
+    Element& appendChild(std::shared_ptr<Element> child);
 
     template <typename... Elements>
-    static std::shared_ptr<Element> AppendChildren(
-        std::shared_ptr<Element> parent,
-        std::shared_ptr<Elements> &&...children) {
-        (AppendChild(parent, children), ...);
-        return parent;
+    void appendChildren(std::shared_ptr<Elements> &&...children) {
+        (appendChild(children), ...);
     }
 
     friend class Root;

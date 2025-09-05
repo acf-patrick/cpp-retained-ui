@@ -34,7 +34,7 @@ Image::~Image() {
 
 void Image::onChildAppended(std::shared_ptr<Element>) {
     const std::string errorMessage("[Image] Image element can only be used as leaf node.");
-    TraceLog(LOG_FATAL, errorMessage.c_str());
+    TraceLog(LOG_ERROR, errorMessage.c_str());
     throw std::logic_error(errorMessage);
 }
 

@@ -8,7 +8,7 @@
 namespace ui {
 namespace element {
 
-class Root : public Element, public std::enable_shared_from_this<Root> {
+class Root : public Element {
     YGConfigRef _config;
     bool _finalized = false;
     bool _dirtyLayout = true; // should calculate layout at least once

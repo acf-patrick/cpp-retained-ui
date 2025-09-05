@@ -156,7 +156,7 @@ class Engine {
             .y = WINDOW_HEIGHT});
 
         auto view = std::make_shared<ui::element::View>();
-        ui::element::Element::AppendChild(_elementsRoot, view);
+        _elementsRoot->appendChild(view);
 
         {
             auto layout = view->getLayout();
@@ -168,7 +168,7 @@ class Engine {
         }
 
         auto rect = std::make_shared<ui::element::View>();
-        ui::element::Element::AppendChild(view, rect);
+        view->appendChild(rect);
         {
             auto layout = rect->getLayout();
             auto &size = layout.size.emplace();
@@ -201,12 +201,12 @@ class Engine {
         }
 
         auto text = std::make_shared<ui::element::Text>("This is a button");
-        ui::element::Element::AppendChild(button, text);
+        button->appendChild(text);
 
         repository::FontRepository::Get()->load("roboto", "Roboto-Regular.ttf");
 
         auto imgContainer = std::make_shared<ui::element::View>();
-        ui::element::Element::AppendChild(view, imgContainer);
+        view->appendChild(imgContainer);
         {
             auto layout = imgContainer->getLayout();
             layout.spacing.emplace().border = 3;
@@ -230,7 +230,7 @@ class Engine {
         }
 
         auto image = std::make_shared<ui::element::Image>("assets/images/cat.png", "cat");
-        ui::element::Element::AppendChild(imgContainer, image);
+        imgContainer->appendChild(image);
         {
             auto style = image->getStyle();
             style.opacity = 1;
