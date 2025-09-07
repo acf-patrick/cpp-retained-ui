@@ -3,8 +3,10 @@
 #include "./Layer.h"
 
 #include <algorithm>
+#include <format>
 #include <queue>
 #include <ranges>
+#include <set>
 
 ui::rendering::StackingContext::StackingContextId ui::rendering::StackingContext::nextId = 0;
 
@@ -31,6 +33,10 @@ StackingContext::~StackingContext() {}
 
 std::vector<std::shared_ptr<StackingContext>> StackingContext::getChildren() const {
     return _children;
+}
+
+StackingContext::StackingContextId StackingContext::getId() const {
+    return _id;
 }
 
 StackingContext::Context StackingContext::getContext() const {
@@ -129,7 +135,17 @@ bool StackingContext::needsItsOwnLayer() const {
 }
 
 bool StackingContext::hasItsOwnLayer() const {
-    return _layer.lock() != nullptr;
+    auto owner = _owner.lock();
+    if (!owner)
+        return false;
+
+    if (!owner->hasItsOwnStackingContext())
+        return false;
+
+    if (auto layer = _layer.lock())
+        return layer->getOwner() == owner;
+
+    return false;
 }
 
 void StackingContext::render() {
@@ -167,7 +183,49 @@ std::vector<std::shared_ptr<ui::element::Element>> StackingContext::getElements(
     return elements;
 }
 
-void StackingContext::revokeElements(const std::set<std::shared_ptr<ui::element::Element>> &revokedElements) {
+void StackingContext::takeOwnershipOfElements(std::shared_ptr<StackingContext> ctx) {
+    if (ctx == nullptr)
+        return;
+
+    if (std::find(_children.begin(), _children.end(), ctx) == _children.end()) {
+        const auto errorMessage =
+            std::format("[StackingContext] Can not take ownership of elements : provided context is not a direct child of the current context");
+        TraceLog(LOG_ERROR, errorMessage.c_str());
+        throw std::logic_error(errorMessage);
+    }
+
+    bool processed = false;
+    auto flattenedTree = ctx->getOwner()->flatten();
+    std::vector<std::weak_ptr<ui::element::Element>> elements(flattenedTree.size());
+    std::transform(
+        flattenedTree.begin(), flattenedTree.end(),
+        elements.begin(), [](const auto &e) { return std::weak_ptr(e); });
+
+    _elements.reserve(_elements.size() + elements.size());
+
+    for (
+        auto ownerNextSibling = ctx->getOwner()->getNextSibling();
+        ownerNextSibling != nullptr;
+        ownerNextSibling = ownerNextSibling->getNextSibling()) {
+
+        if (!ownerNextSibling->hasItsOwnStackingContext()) {
+            auto it = std::find_if(
+                _elements.begin(),
+                _elements.end(),
+                [ownerNextSibling](const std::weak_ptr<ui::element::Element>& e) { return e.lock() == ownerNextSibling; });
+            _elements.insert(std::next(it), elements.begin(), elements.end());
+            processed = true;
+            break;
+        }
+    }
+
+    if (!processed) { // insert at the end
+        _elements.insert(_elements.end(), elements.begin(), elements.end());
+    }
+}
+
+void StackingContext::removeElements(const std::vector<std::shared_ptr<ui::element::Element>> &toRevoke) {
+    std::set<std::shared_ptr<ui::element::Element>> revokedElements(toRevoke.begin(), toRevoke.end());
     auto elements = getElements();
 
     std::vector<std::shared_ptr<ui::element::Element>> remainingElements;
@@ -190,6 +248,9 @@ bool StackingContext::IsRequiredFor(std::shared_ptr<const ui::element::Element> 
     return element->isRoot() || style.opacity < 1.0f ||
            style.transform.has_value() ||
            style.zIndex != 0 || std::holds_alternative<ui::style::IsolationIsolate>(style.isolation);
+    /*
+    TODO : also check transform default value
+    */
 }
 
 std::shared_ptr<StackingContext> StackingContext::BuildTree(std::shared_ptr<ui::element::Element> elementsRoot) {

@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <optional>
-#include <set>
 #include <vector>
 
 #include "../styles/Transform.h"
@@ -60,6 +59,7 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
     void render();
 
     Context getContext() const;
+    StackingContextId getId() const;
 
     void setLayer(std::shared_ptr<Layer> layer);
     std::shared_ptr<Layer> getParentLayer() const;
@@ -72,8 +72,6 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
     // Returns elements on this stacking context
     std::vector<std::shared_ptr<ui::element::Element>> getElements() const;
 
-    // Remove provided elements as managed by this stacking context
-    void revokeElements(const std::set<std::shared_ptr<ui::element::Element>>& elements);
 
     bool hasItsOwnLayer() const;
     bool needsItsOwnLayer() const;
@@ -83,7 +81,10 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
 
     void addElement(std::shared_ptr<ui::element::Element> element);
     void removeElement(std::shared_ptr<ui::element::Element> element);
+    void removeElements(const std::vector<std::shared_ptr<ui::element::Element>>& elements);
     void replaceChild(std::shared_ptr<StackingContext> oldCtx, std::shared_ptr<StackingContext> newCtx);
+
+    void takeOwnershipOfElements(std::shared_ptr<StackingContext> ctx);
 
     void appendChild(std::shared_ptr<StackingContext> child);
 
@@ -91,7 +92,7 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
     void appendChildren(std::shared_ptr<Contexts> &&...contexts) {
         (appendChild(contexts), ...);
     }
-    
+
     static std::shared_ptr<StackingContext> BuildTree(std::shared_ptr<ui::element::Element> element);
 
     static bool IsRequiredFor(std::shared_ptr<const ui::element::Element> element);

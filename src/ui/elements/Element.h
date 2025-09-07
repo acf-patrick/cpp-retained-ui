@@ -70,7 +70,9 @@ class Element : public std::enable_shared_from_this<Element> {
     void markLayoutAsDirty();
 
     // Perform checks after style update
-    void checkForStackingContextUpdate();
+    void checkForStackingContextAndLayerUpdate(const ui::style::Style& oldStyle);
+
+    void disposeOwnedLayer();
 
     virtual void onPreferredThemeChanged(ui::style::Theme theme);
     virtual void onChildAppended(std::shared_ptr<Element> child);
@@ -124,6 +126,9 @@ class Element : public std::enable_shared_from_this<Element> {
 
     ElementId getId() const;
 
+    // Flatten element tree
+    std::vector<std::shared_ptr<Element>> flatten() const;
+
     std::shared_ptr<ui::rendering::StackingContext> getParentStackingContext() const;
 
     void setStackingContext(std::shared_ptr<ui::rendering::StackingContext> ctx);
@@ -143,6 +148,9 @@ class Element : public std::enable_shared_from_this<Element> {
 
     Vector2 getPosition() const;
     Vector2 getSize() const;
+
+    std::shared_ptr<Element> getPreviousSibling() const;
+    std::shared_ptr<Element> getNextSibling() const;
 
     bool contains(const Vector2 &point) const;
 

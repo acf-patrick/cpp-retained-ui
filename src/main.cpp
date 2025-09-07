@@ -94,6 +94,7 @@ class Engine {
     std::shared_ptr<ui::rendering::Layer> _layerRoot;
     std::vector<repository::Repository *> _repositories;
     bool _requestNewFrame;
+    std::shared_ptr<ui::element::Element> _imgContainer; // TO REMOVE
 
     // created for debug purposes
     void _renderElements() {
@@ -109,37 +110,17 @@ class Engine {
         }
     }
 
-    std::shared_ptr<ui::rendering::Layer> buildLayerTree(std::shared_ptr<ui::rendering::StackingContext> rootCtx) const {
-        // [currentCtx, parentLayer]
-        std::queue<std::pair<std::shared_ptr<ui::rendering::StackingContext>, std::shared_ptr<ui::rendering::Layer>>> queue;
-        std::shared_ptr<ui::rendering::Layer> rootLayer;
-
-        queue.push({rootCtx, nullptr});
-        while (!queue.empty()) {
-            auto [ctx, parentLayer] = queue.front();
-            queue.pop();
-            auto ctxOwner = ctx->getOwner();
-
-            if (ui::rendering::Layer::IsRequiredFor(ctxOwner)) {
-                auto layer = std::make_shared<ui::rendering::Layer>(ctxOwner);
-                ctx->setLayer(layer);
-                if (parentLayer)
-                    parentLayer->appendChild(layer);
-
-                if (ctx == rootCtx)
-                    rootLayer = layer;
-            } else {
-                ctx->setLayer(parentLayer);
-            }
-
-            for (auto child : ctx->getChildren())
-                queue.push({child, ctx->getLayer()});
-        }
-
-        return rootLayer;
-    }
-
     void scaffold() {
+        /*
+        Root {
+            View {
+                Rect {}
+                View {
+                    Image {}
+                }
+            }
+        }
+        */
         _elementsRoot = std::make_shared<ui::element::Root>(Vector2{
             .x = WINDOW_WIDTH,
             .y = WINDOW_HEIGHT});
@@ -195,6 +176,7 @@ class Engine {
         repository::FontRepository::Get()->load("roboto", "Roboto-Regular.ttf");
 
         auto imgContainer = std::make_shared<ui::element::View>();
+        _imgContainer = imgContainer;
         view->appendChild(imgContainer);
         {
             auto layout = imgContainer->getLayout();
@@ -206,9 +188,9 @@ class Engine {
 
             auto style = imgContainer->getStyle();
             style.borderColor = WHITE;
-            auto &transform = style.transform.emplace();
+            // auto &transform = style.transform.emplace();
             // transform.rotation = {utils::AngleRadian(PI/3)};
-            auto &translation = transform.translation.emplace();
+            // auto &translation = transform.translation.emplace();
             /*translation.x = utils::Value<float>(48);
             translation.y = utils::Value<float>(-48);
             auto& scale = transform.scale.emplace();
@@ -288,7 +270,7 @@ class Engine {
         scaffold();
 
         _stackingContextRoot = ui::rendering::StackingContext::BuildTree(_elementsRoot);
-        _layerRoot = buildLayerTree(_stackingContextRoot);
+        _layerRoot = ui::rendering::Layer::BuildTree(_stackingContextRoot);
         _requestNewFrame = true;
 
         SetTraceLogLevel(LOG_DEBUG);
@@ -301,8 +283,15 @@ class Engine {
 
     void run() {
         while (!WindowShouldClose()) {
-            // prevent window from freezing
-            PollInputEvents();
+            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                auto style = _imgContainer->getStyle();
+                style.opacity = 0.125;
+                _imgContainer->updateStyle(style);
+            } else if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)) {
+                auto style = _imgContainer->getStyle();
+                style.opacity = 1;
+                _imgContainer->updateStyle(style);
+            }
 
             // update inherited properties
             // and check for layout dirty flag
@@ -310,7 +299,10 @@ class Engine {
 
             if (_requestNewFrame) {
                 render();
-                _requestNewFrame = false;
+                // _requestNewFrame = false;
+            } else {
+                // prevent window from freezing
+                PollInputEvents();
             }
         }
     }

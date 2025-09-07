@@ -191,6 +191,11 @@ void Layer::setOwner(std::shared_ptr<ui::element::Element> owner) {
         _owner = owner;
 }
 
+void Layer::repositionInParent() {
+    if (auto parent = _parent.lock())
+        parent->sortChildrenByZIndex();
+}
+
 std::shared_ptr<ui::element::Element> Layer::getOwner() const {
     return _owner.lock();
 }
@@ -223,6 +228,41 @@ bool Layer::IsRequiredFor(std::shared_ptr<const ui::element::Element> element) {
         or hasFilter
         or hasBackdropEffect
     */
+
+
+    /*
+    TODO : also check transform default value
+    */
+}
+
+std::shared_ptr<Layer> Layer::BuildTree(std::shared_ptr<StackingContext> rootCtx) {
+    // [currentCtx, parentLayer]
+    std::queue<std::pair<std::shared_ptr<ui::rendering::StackingContext>, std::shared_ptr<ui::rendering::Layer>>> queue;
+    std::shared_ptr<ui::rendering::Layer> rootLayer;
+
+    queue.push({rootCtx, nullptr});
+    while (!queue.empty()) {
+        auto [ctx, parentLayer] = queue.front();
+        queue.pop();
+        auto ctxOwner = ctx->getOwner();
+
+        if (ui::rendering::Layer::IsRequiredFor(ctxOwner)) {
+            auto layer = std::make_shared<ui::rendering::Layer>(ctxOwner);
+            ctx->setLayer(layer);
+            if (parentLayer)
+                parentLayer->appendChild(layer);
+
+            if (ctx == rootCtx)
+                rootLayer = layer;
+        } else {
+            ctx->setLayer(parentLayer);
+        }
+
+        for (auto child : ctx->getChildren())
+            queue.push({child, ctx->getLayer()});
+    }
+
+    return rootLayer;
 }
 
 } // namespace rendering

@@ -3,11 +3,13 @@
 #include "../../utils/functions.h"
 #include "../../utils/operators.h"
 #include "../defaults.h"
+#include "../rendering/Layer.h"
 #include "../rendering/StackingContext.h"
 
 #include <yoga/YGNodeLayout.h>
 
 #include <algorithm>
+#include <format>
 #include <queue>
 #include <unordered_map>
 
@@ -35,9 +37,9 @@ bool Element::isRoot() const {
 }
 
 bool Element::hasItsOwnStackingContext() const {
-    if (auto ctx = _stackingContext.lock()) {
+    if (auto ctx = _stackingContext.lock())
         return ctx->getOwner().get() == this;
-    }
+
     return false;
 }
 
@@ -208,46 +210,140 @@ void Element::updateStyle(const style::Style &style) {
         markInheritableStylesAsDirty();
     }
 
+    auto tmp = _style;
     _style = style;
-    checkForStackingContextUpdate();
+    checkForStackingContextAndLayerUpdate(tmp);
 }
 
-void Element::checkForStackingContextUpdate() {
+void Element::checkForStackingContextAndLayerUpdate(const style::Style &oldStyle) {
     auto ctx = _stackingContext.lock();
     if (!ctx)
         return;
+    /* TODO : runtime_error should be thrown only after UI elements setup
+     ```{
+       const auto errorMessage = std::format("[Element] {} does not own and is not owned by any StackingContext", _id);
+       TraceLog(LOG_ERROR, errorMessage.c_str());
+       throw std::runtime_error(errorMessage);
+    }``` */
 
     if (!hasItsOwnStackingContext()) {
-        if (auto parentCtx = ctx->getParent();
-            parentCtx != nullptr && needsItsOwnStackingContext()) {
+        if (needsItsOwnStackingContext()) {
+            auto self = shared_from_this();
+            auto newCtx = ui::rendering::StackingContext::BuildTree(self);
 
-            ctx = ui::rendering::StackingContext::BuildTree(shared_from_this());
-            parentCtx->appendChild(ctx);
+            if (newCtx->needsItsOwnLayer()) {
+                auto newLayer = ui::rendering::Layer::BuildTree(newCtx);
+                newCtx->setLayer(newLayer);
+                ctx->getLayer()->appendChild(newLayer);
+            } else
+                newCtx->setLayer(ctx->getLayer());
 
-            // To myself: Elements under this element must be managed by the new context or its child contexts
-            // Hence we remove them from the parent context
+            ctx->removeElement(self);
+            ctx->removeElements(newCtx->getElements());
+            ctx->appendChild(newCtx);
 
-            auto ctxElements = ctx->getElements();
-            std::set<std::shared_ptr<ui::element::Element>> toRevoke(ctxElements.begin(), ctxElements.end());
-            parentCtx->revokeElements(toRevoke);
-
-            _stackingContext = ctx;
+            _stackingContext = newCtx;
         }
     } else {
         if (!needsItsOwnStackingContext()) {
-            // TODO : we have to reconstruct parent context
-            if (auto parent = ctx->getParent()) {
-                if (auto parentOwner = parent->getOwner()) {
-                    auto newParent = ui::rendering::StackingContext::BuildTree(parentOwner);
-                    if (auto parentsParent = parent->getParent()) {
-                        parentsParent->replaceChild(parent, newParent);
-                    }
-                }
+            if (ctx->hasItsOwnLayer())
+                disposeOwnedLayer();
+
+            if (auto parentCtx = ctx->getParent()) {
+                parentCtx->takeOwnershipOfElements(ctx);
+                parentCtx->removeChild(ctx);
+                _stackingContext = parentCtx;
+            } else {
+                throw std::runtime_error("[Element] Element seems to be root although does not need its own stacking context");
             }
-        } else if (ctx->getContext().zIndex != _style.zIndex) {
-            ctx->repositionInParent();
+        } else { // need and has its own stacking context
+            if (oldStyle.zIndex != _style.zIndex) {
+                ctx->repositionInParent();
+            }
+
+            if (!ctx->hasItsOwnLayer() && ctx->needsItsOwnLayer()) {
+                auto newLayer = ui::rendering::Layer::BuildTree(ctx);
+                auto parentLayer = ctx->getLayer();
+                ctx->setLayer(newLayer);
+                parentLayer->appendChild(newLayer);
+            } else if (ctx->hasItsOwnLayer() && !ctx->needsItsOwnLayer())  {
+                disposeOwnedLayer();
+            } else if (ctx->needsItsOwnLayer() && ctx->hasItsOwnLayer()) {
+                if (oldStyle.zIndex != _style.zIndex)
+                    ctx->getLayer()->repositionInParent();
+            }
         }
     }
+}
+
+void Element::disposeOwnedLayer() {
+    if (!hasItsOwnStackingContext())
+        return;
+
+    auto ctx = _stackingContext.lock();
+    if (!ctx->hasItsOwnLayer())
+        return;
+
+    auto layer = ctx->getLayer();
+    if (auto parentLayer = layer->getParent()) {
+        parentLayer->removeChild(layer);
+        ctx->setLayer(parentLayer);
+    }
+}
+
+std::vector<std::shared_ptr<Element>> Element::flatten() const {
+    std::vector<std::shared_ptr<Element>> tree;
+    std::queue<std::shared_ptr<Element>> queue;
+
+    auto self = std::const_pointer_cast<Element>(shared_from_this());
+    queue.push(self);
+
+    while (!queue.empty()) {
+        auto e = queue.front();
+        queue.pop();
+
+        tree.push_back(e);
+        for (auto child : e->_children)
+            queue.push(child);
+    }
+
+    return tree;
+}
+
+std::shared_ptr<Element> Element::getPreviousSibling() const {
+    auto self = shared_from_this();
+
+    if (auto parent = _parent.lock()) {
+        auto it = std::find(
+            parent->_children.begin(),
+            parent->_children.end(),
+            self);
+
+        if (it == parent->_children.begin())
+            return nullptr;
+        else {
+            auto prev = std::prev(it);
+            return *prev;
+        }
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<Element> Element::getNextSibling() const {
+    auto self = shared_from_this();
+
+    if (auto parent = _parent.lock()) {
+        auto it = std::find(
+                      parent->_children.begin(),
+                      parent->_children.end(),
+                      self) +
+                  1;
+
+        return it == parent->_children.end() ? nullptr : (*it);
+    }
+
+    return nullptr;
 }
 
 void Element::updateLayout(const style::Layout &layout) {

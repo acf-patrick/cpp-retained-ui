@@ -21,6 +21,8 @@ class Element; // forward declaration
 
 namespace rendering {
 
+class StackingContext; // forward declaration
+
 class Layer : public std::enable_shared_from_this<Layer> {
   public:
     using LayerId = unsigned int;
@@ -56,8 +58,6 @@ class Layer : public std::enable_shared_from_this<Layer> {
     std::weak_ptr<Layer> _parent;
     RenderTexture2D _renderTexture;
     bool _cleanRenderTexture;
-
-    // bool _used; // tells if redering are currently performed on this layer's texture
     std::weak_ptr<ui::element::Element> _owner;
 
     void sortChildrenByZIndex();
@@ -81,6 +81,9 @@ class Layer : public std::enable_shared_from_this<Layer> {
 
     std::shared_ptr<Layer> getParent() const;
 
+    // Must be called if owner changed impactful style properties
+    void repositionInParent();
+
     // returns `true` if render texture has been cleared
     bool isClean() const;
 
@@ -95,6 +98,8 @@ class Layer : public std::enable_shared_from_this<Layer> {
     }
 
     static bool IsRequiredFor(std::shared_ptr<const ui::element::Element> element);
+
+    static std::shared_ptr<Layer> BuildTree(std::shared_ptr<StackingContext> ctx);
 };
 
 } // namespace rendering
