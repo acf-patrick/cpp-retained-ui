@@ -31,6 +31,8 @@ class Root : public Element {
 
     void render() override;
 
+    void onWindowResized(int newScreenWidth, int newScreenHeight);
+
     // Construct UI tree
     void finalize();
 };

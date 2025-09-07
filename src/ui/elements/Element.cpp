@@ -96,6 +96,8 @@ void Element::markInheritableStylesAsDirty() {
 }
 
 void Element::markLayoutAsDirty() {
+    onLayoutDirtyFlagTriggered();
+
     // notify parent for layout recomputation
     for (auto parent = _parent.lock(); parent; parent = parent->getParent())
         parent->onLayoutDirtyFlagTriggered();
@@ -151,6 +153,11 @@ Vector2 Element::getSize() const {
 bool Element::contains(const Vector2 &point) const {
     const auto rect = getBoundingRect();
     return CheckCollisionPointRec(point, rect);
+}
+
+Rectangle Element::getFinalBoundingRect() const {
+    const auto bb = getBoundingRect();
+    // TODO : return transformed rect
 }
 
 Rectangle Element::getBoundingRect() const {
@@ -751,6 +758,8 @@ void Element::drawBorder(const Rectangle &bb) {
 }
 
 void Element::render() {
+    // TODO : render element at a given offset (layer offset)
+
     const auto bb = getBoundingRect();
 
     drawBackground(bb);

@@ -66,6 +66,10 @@ class Layer : public std::enable_shared_from_this<Layer> {
     Layer(std::shared_ptr<ui::element::Element> owner);
     ~Layer();
 
+    // Composite this node with its children
+    void composite();
+
+    // Render this node
     void render();
 
     UseLayerGuardRef use();

@@ -56,6 +56,9 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
     std::vector<std::shared_ptr<StackingContext>> getChildren() const;
 
     // Render self and children in stack way
+    void renderTree();
+    
+    // Render this node
     void render();
 
     Context getContext() const;

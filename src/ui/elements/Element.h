@@ -146,6 +146,9 @@ class Element : public std::enable_shared_from_this<Element> {
     // Might be invalid if called before layout calculation
     Rectangle getBoundingRect() const;
 
+    // Returns bounding box of this element bounding rect after transformation (scale, translation, rotation)
+    Rectangle getFinalBoundingRect() const;
+
     Vector2 getPosition() const;
     Vector2 getSize() const;
 

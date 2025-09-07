@@ -26,6 +26,7 @@ void Root::finalize() {
 
     updateStyle(ui::defaults::rootStyles(_preferredTheme));
     propagatePreferredTheme();
+    calculateLayout();
     propagateStyles();
     _finalized = true;
 }
@@ -128,6 +129,15 @@ void Root::render() {
     }
 
     Element::render();
+}
+
+void Root::onWindowResized(int newWidth, int newHeight) {
+    auto layout = getLayout();
+    auto size = layout.size.value_or(ui::style::Size{});
+    size.width = utils::Value(newWidth);
+    size.height = utils::Value(newHeight);
+    layout.size = size;
+    updateLayout(layout);
 }
 
 } // namespace element

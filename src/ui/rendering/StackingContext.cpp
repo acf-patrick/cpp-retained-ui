@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <format>
 #include <queue>
-#include <ranges>
+#include <stack>
 #include <set>
 
 ui::rendering::StackingContext::StackingContextId ui::rendering::StackingContext::nextId = 0;
@@ -139,9 +139,6 @@ bool StackingContext::hasItsOwnLayer() const {
     if (!owner)
         return false;
 
-    if (!owner->hasItsOwnStackingContext())
-        return false;
-
     if (auto layer = _layer.lock())
         return layer->getOwner() == owner;
 
@@ -164,6 +161,8 @@ void StackingContext::render() {
     if (!layer->isClean())
         layer->clearRenderTarget();
 
+    // TODO : render element relative to given layer
+
     auto useLayerGuard = layer->use();
     if (!owner->isNotDisplayed()) {
         owner->render();
@@ -173,6 +172,20 @@ void StackingContext::render() {
                 if (!element->isNotDisplayed())
                     element->render();
         }
+    }
+}
+
+void StackingContext::renderTree() {
+    std::stack<std::shared_ptr<StackingContext>> stack;
+    stack.push(shared_from_this());
+
+    while (!stack.empty()) {
+        auto ctx = stack.top();
+        stack.pop();
+
+        ctx->render();
+        for (auto child : ctx->getChildren())
+            stack.push(child);
     }
 }
 

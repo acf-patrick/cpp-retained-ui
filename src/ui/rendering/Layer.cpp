@@ -1,6 +1,7 @@
 #include "./Layer.h"
 
 #include <algorithm>
+#include <stack>
 #include <queue>
 
 #include "../elements/Element.h"
@@ -22,7 +23,11 @@ Layer::Layer(std::shared_ptr<ui::element::Element> owner)
     : _owner(owner) {
     _id = nextId++;
     _cleanRenderTexture = true;
+    // _renderTexture = LoadRenderTexture(1290, 1080);
+    
     _renderTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
+    // TODO : use computed rect from owner element and normal flow elements
+
     if (_renderTexture.id == 0) {
         const std::string errorMessage("[Layer] Unable to create render texture.");
         TraceLog(LOG_FATAL, errorMessage.c_str());
@@ -32,6 +37,27 @@ Layer::Layer(std::shared_ptr<ui::element::Element> owner)
 
 Layer::~Layer() {
     UnloadRenderTexture(_renderTexture);
+}
+
+void Layer::composite() {
+    std::stack<std::pair<std::shared_ptr<ui::rendering::Layer>, bool>> stack;
+    stack.push({shared_from_this(), false});
+
+    while (!stack.empty()) {
+        auto [layer, visited] = stack.top();
+        stack.pop();
+
+        if (visited) {
+            if (auto parent = layer->getParent()) {
+                auto useLayerGuard = parent->use();
+                layer->render();
+            }
+        } else {
+            stack.push({layer, true});
+            for (auto child : layer->getChildren())
+                stack.push({child, false});
+        }
+    }
 }
 
 void Layer::render() {
@@ -67,7 +93,7 @@ void Layer::render() {
             if (auto deg = std::get_if<utils::AngleDegree>(&tRotation->angle)) {
                 rotation = deg->value;
             } else {
-                rotation = 180 / PI * std::get<utils::AngleRadian>(tRotation->angle).value;
+                rotation = RAD2DEG * std::get<utils::AngleRadian>(tRotation->angle).value;
             }
         }
 

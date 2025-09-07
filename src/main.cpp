@@ -80,6 +80,7 @@ class Engine {
      */
     struct WindowInitialization {
         WindowInitialization() {
+            SetConfigFlags(FLAG_WINDOW_RESIZABLE);
             InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Retained UI with raylib");
         }
 
@@ -221,45 +222,10 @@ class Engine {
         _elementsRoot->finalize();
     }
 
-    void compositeLayerTree(std::shared_ptr<ui::rendering::Layer> rootLayer) {
-        std::stack<std::pair<std::shared_ptr<ui::rendering::Layer>, bool>> stack;
-        stack.push({rootLayer, false});
-
-        while (!stack.empty()) {
-            auto [layer, visited] = stack.top();
-            stack.pop();
-
-            if (visited) {
-                if (auto parent = layer->getParent()) {
-                    auto useLayerGuard = parent->use();
-                    layer->render();
-                }
-            } else {
-                stack.push({layer, true});
-                for (auto child : layer->getChildren())
-                    stack.push({child, false});
-            }
-        }
-    }
-
-    void renderStackingContextTree(std::shared_ptr<ui::rendering::StackingContext> rootCtx) {
-        std::stack<std::shared_ptr<ui::rendering::StackingContext>> stack;
-        stack.push(rootCtx);
-
-        while (!stack.empty()) {
-            auto ctx = stack.top();
-            stack.pop();
-
-            ctx->render();
-            for (auto child : ctx->getChildren())
-                stack.push(child);
-        }
-    }
-
     void render() {
         BeginDrawing();
-        renderStackingContextTree(_stackingContextRoot);
-        compositeLayerTree(_layerRoot);
+        _stackingContextRoot->renderTree();
+        _layerRoot->composite();
         _layerRoot->render();
         EndDrawing();
     }
@@ -291,6 +257,10 @@ class Engine {
                 auto style = _imgContainer->getStyle();
                 style.opacity = 1;
                 _imgContainer->updateStyle(style);
+            }
+            
+            if (IsWindowResized()) {
+                _elementsRoot->onWindowResized(GetScreenWidth(), GetScreenHeight());
             }
 
             // update inherited properties
