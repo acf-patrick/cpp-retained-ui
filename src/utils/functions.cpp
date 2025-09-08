@@ -5,6 +5,12 @@
 
 namespace utils {
 
+bool isMultipleOf2PI(double angle) {
+    double _2PI = 2.0 * PI;
+    double r = std::fmod(angle, _2PI);
+    return std::fabs(r) < 1e-9 || std::fabs(r - _2PI) < 1e-9;
+}
+
 Rectangle getBoundsOfTransformedRect(
     const Rectangle &rect,
     const Vector2 &origin,

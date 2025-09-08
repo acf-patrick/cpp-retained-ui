@@ -157,7 +157,59 @@ bool Element::contains(const Vector2 &point) const {
 
 Rectangle Element::getFinalBoundingRect() const {
     const auto bb = getBoundingRect();
-    // TODO : return transformed rect
+    if (!_style.transform.has_value())
+        return bb;
+
+    Vector2 origin;
+    if (std::holds_alternative<style::TransformOriginCenter>(_style.transformOrigin)) {
+        origin.x = bb.width / 2;
+        origin.y = bb.height / 2;
+    } else {
+        auto originPosition = std::get<style::TransformOriginPosition>(_style.transformOrigin);
+
+        if (auto x = std::get_if<utils::Value<int>>(&originPosition.x)) {
+            origin.x = x->value;
+        } else {
+            origin.x = bb.width * std::get<utils::Ratio>(originPosition.x).ratio;
+        }
+
+        if (auto y = std::get_if<utils::Value<int>>(&originPosition.y)) {
+            origin.y = y->value;
+        } else {
+            origin.y = bb.height * std::get<utils::Ratio>(originPosition.y).ratio;
+        }
+    }
+
+    float rotationAngle = 0.0;
+    if (auto rotation = _style.transform->rotation) {
+        if (auto deg = std::get_if<utils::AngleDegree>(&rotation->angle)) {
+            rotationAngle = DEG2RAD * deg->value;
+        } else {
+            rotationAngle = std::get<utils::AngleRadian>(rotation->angle).value;
+        }
+    }
+
+    Vector2 scale = {1.0, 1.0};
+    if (auto tScale = _style.transform->scale) {
+        scale = *tScale;
+    }
+
+    Vector2 translation = {0.0, 0.0};
+    if (auto tTranslation = _style.transform->translation) {
+        if (auto x = std::get_if<utils::Value<float>>(&tTranslation->x)) {
+            translation.x = x->value;
+        } else {
+            translation.x = bb.width * std::get<utils::Ratio>(tTranslation->x).ratio;
+        }
+
+        if (auto y = std::get_if<utils::Value<float>>(&tTranslation->y)) {
+            translation.y = y->value;
+        } else {
+            translation.y = bb.height * std::get<utils::Ratio>(tTranslation->y).ratio;
+        }
+    }
+
+    return utils::getBoundsOfTransformedRect(bb, origin, rotationAngle, scale, translation);
 }
 
 Rectangle Element::getBoundingRect() const {
@@ -273,7 +325,7 @@ void Element::checkForStackingContextAndLayerUpdate(const style::Style &oldStyle
                 auto parentLayer = ctx->getLayer();
                 ctx->setLayer(newLayer);
                 parentLayer->appendChild(newLayer);
-            } else if (ctx->hasItsOwnLayer() && !ctx->needsItsOwnLayer())  {
+            } else if (ctx->hasItsOwnLayer() && !ctx->needsItsOwnLayer()) {
                 disposeOwnedLayer();
             } else if (ctx->needsItsOwnLayer() && ctx->hasItsOwnLayer()) {
                 if (oldStyle.zIndex != _style.zIndex)

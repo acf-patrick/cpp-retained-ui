@@ -27,6 +27,8 @@ struct Transform {
     std::optional<Rotate> rotation;
     std::optional<Vector2> scale;
 
+    bool isSetToDefault() const;
+
     bool operator<=>(const Transform&) const = default;
 };
 

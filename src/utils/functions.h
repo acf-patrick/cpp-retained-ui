@@ -6,6 +6,8 @@ namespace utils {
 
 float clampRatio(float ratio);
 
+bool isMultipleOf2PI(double angle);
+
 Rectangle getBoundsOfTransformedRect(const Rectangle &rect,
                                        const Vector2 &origin,
                                        float rotation,

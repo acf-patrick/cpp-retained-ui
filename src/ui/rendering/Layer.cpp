@@ -1,8 +1,8 @@
 #include "./Layer.h"
 
 #include <algorithm>
-#include <stack>
 #include <queue>
+#include <stack>
 
 #include "../elements/Element.h"
 #include "../styles/Style.h"
@@ -24,7 +24,7 @@ Layer::Layer(std::shared_ptr<ui::element::Element> owner)
     _id = nextId++;
     _cleanRenderTexture = true;
     // _renderTexture = LoadRenderTexture(1290, 1080);
-    
+
     _renderTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
     // TODO : use computed rect from owner element and normal flow elements
 
@@ -248,16 +248,11 @@ bool Layer::IsRequiredFor(std::shared_ptr<const ui::element::Element> element) {
     const auto style = element->getStyle();
     return element->isRoot() ||
            style.opacity < 1.0f ||
-           style.transform.has_value() ||
+           (style.transform.has_value() && !style.transform->isSetToDefault()) ||
            std::holds_alternative<ui::style::IsolationIsolate>(style.isolation);
     /*
         or hasFilter
         or hasBackdropEffect
-    */
-
-
-    /*
-    TODO : also check transform default value
     */
 }
 
