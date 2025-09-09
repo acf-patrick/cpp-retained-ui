@@ -45,6 +45,8 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
 
     void sortChildrenByZIndex();
 
+    void takeOwnershipOfElements(std::shared_ptr<StackingContext> ctx);
+
   public:
     StackingContext(std::shared_ptr<ui::element::Element> owner);
     ~StackingContext();
@@ -69,7 +71,6 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
 
     std::shared_ptr<StackingContext> getParent() const;
     void setParent(std::shared_ptr<StackingContext> parent);
-    void removeChild(std::shared_ptr<StackingContext> child);
 
     // Returns elements on this stacking context
     std::vector<std::shared_ptr<ui::element::Element>> getElements() const;
@@ -82,9 +83,10 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
 
     void replaceChild(std::shared_ptr<StackingContext> oldCtx, std::shared_ptr<StackingContext> newCtx);
 
-    void takeOwnershipOfElements(std::shared_ptr<StackingContext> ctx);
+    void skipChild(std::shared_ptr<StackingContext> child);
 
     void appendChild(std::shared_ptr<StackingContext> child);
+    void removeChild(std::shared_ptr<StackingContext> child);
 
     template <typename... Contexts>
     void appendChildren(std::shared_ptr<Contexts> &&...contexts) {

@@ -306,8 +306,7 @@ void Element::checkForStackingContextAndLayerUpdate(const style::Style &oldStyle
                 disposeOwnedLayer();
 
             if (auto parentCtx = ctx->getParent()) {
-                parentCtx->takeOwnershipOfElements(ctx);
-                parentCtx->removeChild(ctx);
+                parentCtx->skipChild(ctx);
                 _stackingContext = parentCtx;
             } else {
                 throw std::runtime_error("[Element] Element seems to be root although does not need its own stacking context");

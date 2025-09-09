@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <format>
 #include <queue>
-#include <stack>
 #include <set>
+#include <stack>
 
 ui::rendering::StackingContext::StackingContextId ui::rendering::StackingContext::nextId = 0;
 
@@ -179,50 +179,70 @@ void StackingContext::renderTree() {
     }
 }
 
-
 std::vector<std::shared_ptr<ui::element::Element>> StackingContext::getElements() const {
-    /*TODO */
+    auto owner = _owner.lock();
+    if (!owner) {
+        const auto errorMessage = std::format("[StackingContext] %d does not have an owner element", _id);
+        TraceLog(LOG_ERROR, errorMessage.c_str());
+        throw std::logic_error(errorMessage);
+    }
+
+    std::queue<std::shared_ptr<ui::element::Element>> queue;
+    std::vector<std::shared_ptr<ui::element::Element>> elements;
+    queue.push(owner);
+
+    while (!queue.empty()) {
+        auto e = queue.front();
+        queue.pop();
+
+        elements.push_back(e);
+        for (auto child : e->getChildren())
+            elements.push_back(child);
+    }
+
+    return elements;
+}
+
+void StackingContext::skipChild(std::shared_ptr<StackingContext> child) {
+    if (!child) return;
+
+    if (std::find(_children.begin(), _children.end(), child) == _children.end()) {
+        const auto errorMessage =
+            std::format("[StackingContext] Can not skip a non-direct children of this context");
+        TraceLog(LOG_ERROR, errorMessage.c_str());
+        throw std::logic_error(errorMessage);
+    }
+
+    auto self = shared_from_this();
+
+    for (auto grandChild: child->getChildren()) {
+        grandChild->setParent(self);
+        appendChild(grandChild);
+    }
+    sortChildrenByZIndex();
+    takeOwnershipOfElements(child);
+
+    removeChild(child);
 }
 
 void StackingContext::takeOwnershipOfElements(std::shared_ptr<StackingContext> ctx) {
     if (ctx == nullptr)
         return;
 
-    if (std::find(_children.begin(), _children.end(), ctx) == _children.end()) {
-        const auto errorMessage =
-            std::format("[StackingContext] Can not take ownership of elements : provided context is not a direct child of the current context");
-        TraceLog(LOG_ERROR, errorMessage.c_str());
-        throw std::logic_error(errorMessage);
-    }
-/* TODO : set descendant of owner's stacking context to be this context
-    bool processed = false;
-    auto flattenedTree = ctx->getOwner()->flatten();
-    std::vector<std::weak_ptr<ui::element::Element>> elements(flattenedTree.size());
-    std::transform(
-        flattenedTree.begin(), flattenedTree.end(),
-        elements.begin(), [](const auto &e) { return std::weak_ptr(e); });
+    auto self = shared_from_this();
+    std::queue<std::shared_ptr<ui::element::Element>> queue;
+    queue.push(ctx->getOwner());
 
-    _elements.reserve(_elements.size() + elements.size());
+    while (!queue.empty()) {
+        auto e = queue.front();
+        queue.pop();
 
-    for (
-        auto ownerNextSibling = ctx->getOwner()->getNextSibling();
-        ownerNextSibling != nullptr;
-        ownerNextSibling = ownerNextSibling->getNextSibling()) {
-
-        if (!ownerNextSibling->hasItsOwnStackingContext()) {
-            auto it = std::find_if(
-                _elements.begin(),
-                _elements.end(),
-                [ownerNextSibling](const std::weak_ptr<ui::element::Element>& e) { return e.lock() == ownerNextSibling; });
-            _elements.insert(std::next(it), elements.begin(), elements.end());
-            processed = true;
-            break;
+        if (e->getStackingContext() == ctx) {
+            e->setStackingContext(self);
+            for (auto child : e->getChildren())
+                queue.push(child);
         }
     }
-
-    if (!processed) { // insert at the end
-        _elements.insert(_elements.end(), elements.begin(), elements.end());
-    }*/
 }
 
 bool StackingContext::IsRequiredFor(std::shared_ptr<const ui::element::Element> element) {
@@ -250,7 +270,7 @@ std::shared_ptr<StackingContext> StackingContext::BuildTree(std::shared_ptr<ui::
             e->setStackingContext(ctx);
             if (parentCtx)
                 parentCtx->appendChild(ctx);
-
+ 
             if (e == elementsRoot)
                 rootCtx = ctx;
         } else {
