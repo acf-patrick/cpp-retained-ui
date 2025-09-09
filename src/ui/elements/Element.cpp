@@ -165,7 +165,7 @@ Rectangle Element::getFinalBoundingRect() const {
         origin.x = bb.width / 2;
         origin.y = bb.height / 2;
     } else {
-        auto originPosition = std::get<style::TransformOriginPosition>(_style.transformOrigin);
+        auto& originPosition = std::get<style::TransformOriginPosition>(_style.transformOrigin);
 
         if (auto x = std::get_if<utils::Value<int>>(&originPosition.x)) {
             origin.x = x->value;
@@ -297,10 +297,7 @@ void Element::checkForStackingContextAndLayerUpdate(const style::Style &oldStyle
             } else
                 newCtx->setLayer(ctx->getLayer());
 
-            ctx->removeElement(self);
-            ctx->removeElements(newCtx->getElements());
             ctx->appendChild(newCtx);
-
             _stackingContext = newCtx;
         }
     } else {

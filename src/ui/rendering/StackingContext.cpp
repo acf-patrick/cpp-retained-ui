@@ -89,18 +89,6 @@ void StackingContext::replaceChild(std::shared_ptr<StackingContext> oldCtx, std:
     std::replace(_children.begin(), _children.end(), oldCtx, newCtx);
 }
 
-void StackingContext::addElement(std::shared_ptr<ui::element::Element> element) {
-    if (element)
-        _elements.push_back(element);
-}
-
-void StackingContext::removeElement(std::shared_ptr<ui::element::Element> element) {
-    if (element)
-        _elements.erase(
-            std::remove_if(_elements.begin(), _elements.end(),
-                           [=](std::weak_ptr<ui::element::Element> e) { return e.lock() == element; }));
-}
-
 std::shared_ptr<ui::element::Element> StackingContext::getOwner() const {
     return _owner.lock();
 }
@@ -167,11 +155,13 @@ void StackingContext::render() {
     if (!owner->isNotDisplayed()) {
         owner->render();
 
+        /*
+        TODO : render from owner
         for (auto e : _elements) {
             if (auto element = e.lock())
                 if (!element->isNotDisplayed())
                     element->render();
-        }
+        }*/
     }
 }
 
@@ -189,11 +179,9 @@ void StackingContext::renderTree() {
     }
 }
 
+
 std::vector<std::shared_ptr<ui::element::Element>> StackingContext::getElements() const {
-    std::vector<std::shared_ptr<ui::element::Element>> elements(_elements.size());
-    std::transform(_elements.begin(), _elements.end(), elements.begin(),
-                   [](const std::weak_ptr<ui::element::Element> &element) { return element.lock(); });
-    return elements;
+    /*TODO */
 }
 
 void StackingContext::takeOwnershipOfElements(std::shared_ptr<StackingContext> ctx) {
@@ -206,7 +194,7 @@ void StackingContext::takeOwnershipOfElements(std::shared_ptr<StackingContext> c
         TraceLog(LOG_ERROR, errorMessage.c_str());
         throw std::logic_error(errorMessage);
     }
-
+/* TODO : set descendant of owner's stacking context to be this context
     bool processed = false;
     auto flattenedTree = ctx->getOwner()->flatten();
     std::vector<std::weak_ptr<ui::element::Element>> elements(flattenedTree.size());
@@ -234,23 +222,7 @@ void StackingContext::takeOwnershipOfElements(std::shared_ptr<StackingContext> c
 
     if (!processed) { // insert at the end
         _elements.insert(_elements.end(), elements.begin(), elements.end());
-    }
-}
-
-void StackingContext::removeElements(const std::vector<std::shared_ptr<ui::element::Element>> &toRevoke) {
-    std::set<std::shared_ptr<ui::element::Element>> revokedElements(toRevoke.begin(), toRevoke.end());
-    auto elements = getElements();
-
-    std::vector<std::shared_ptr<ui::element::Element>> remainingElements;
-    std::copy_if(
-        elements.begin(), elements.end(),
-        std::back_inserter(remainingElements),
-        [revokedElements](const std::shared_ptr<ui::element::Element> &element) { return !revokedElements.contains(element); });
-
-    _elements.resize(remainingElements.size());
-    int i = 0;
-    for (auto e : remainingElements)
-        _elements[i++] = e;
+    }*/
 }
 
 bool StackingContext::IsRequiredFor(std::shared_ptr<const ui::element::Element> element) {
@@ -259,11 +231,8 @@ bool StackingContext::IsRequiredFor(std::shared_ptr<const ui::element::Element> 
 
     const auto style = element->getStyle();
     return element->isRoot() || style.opacity < 1.0f ||
-           style.transform.has_value() ||
+           (style.transform.has_value() && !style.transform->isSetToDefault()) ||
            style.zIndex != 0 || std::holds_alternative<ui::style::IsolationIsolate>(style.isolation);
-    /*
-    TODO : also check transform default value
-    */
 }
 
 std::shared_ptr<StackingContext> StackingContext::BuildTree(std::shared_ptr<ui::element::Element> elementsRoot) {
@@ -285,7 +254,6 @@ std::shared_ptr<StackingContext> StackingContext::BuildTree(std::shared_ptr<ui::
             if (e == elementsRoot)
                 rootCtx = ctx;
         } else {
-            parentCtx->addElement(e);
             e->setStackingContext(parentCtx);
         }
 

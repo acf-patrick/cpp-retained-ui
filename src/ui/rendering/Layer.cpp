@@ -23,10 +23,9 @@ Layer::Layer(std::shared_ptr<ui::element::Element> owner)
     : _owner(owner) {
     _id = nextId++;
     _cleanRenderTexture = true;
-    // _renderTexture = LoadRenderTexture(1290, 1080);
 
-    _renderTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
-    // TODO : use computed rect from owner element and normal flow elements
+    const auto rect = getElementsBoundingRect();
+    _renderTexture = LoadRenderTexture(std::min(GetScreenWidth(), (int)rect.width), std::min(GetScreenHeight(), (int)rect.height));
 
     if (_renderTexture.id == 0) {
         const std::string errorMessage("[Layer] Unable to create render texture.");
@@ -37,6 +36,25 @@ Layer::Layer(std::shared_ptr<ui::element::Element> owner)
 
 Layer::~Layer() {
     UnloadRenderTexture(_renderTexture);
+}
+
+Rectangle Layer::getElementsBoundingRect() const {
+    auto owner = _owner.lock();
+    auto elements = owner->getStackingContext()->getElements();
+    elements.push_back(owner);
+
+    Vector2 min = {std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
+    Vector2 max = {std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest()};
+
+    for (auto e : elements) {
+        auto rect = e->getFinalBoundingRect();
+        min.x = std::min(min.x, rect.x);
+        min.y = std::min(min.y, rect.y);
+        max.x = std::max(max.x, rect.x + rect.width);
+        max.y = std::max(max.y, rect.y + rect.height);
+    }
+
+    return Rectangle{min.x, min.y, max.x - min.x, max.y - min.y};
 }
 
 void Layer::composite() {

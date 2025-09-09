@@ -40,7 +40,6 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
     std::weak_ptr<StackingContext> _parent;
     std::weak_ptr<ui::element::Element> _owner;
     std::vector<std::shared_ptr<StackingContext>> _children;
-    std::vector<std::weak_ptr<ui::element::Element>> _elements;
     std::weak_ptr<Layer> _layer; // optional layer if GPU surface is required
     StackingContextId _id;
 
@@ -75,16 +74,12 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
     // Returns elements on this stacking context
     std::vector<std::shared_ptr<ui::element::Element>> getElements() const;
 
-
     bool hasItsOwnLayer() const;
     bool needsItsOwnLayer() const;
 
     // Sort parent's children
     void repositionInParent();
 
-    void addElement(std::shared_ptr<ui::element::Element> element);
-    void removeElement(std::shared_ptr<ui::element::Element> element);
-    void removeElements(const std::vector<std::shared_ptr<ui::element::Element>>& elements);
     void replaceChild(std::shared_ptr<StackingContext> oldCtx, std::shared_ptr<StackingContext> newCtx);
 
     void takeOwnershipOfElements(std::shared_ptr<StackingContext> ctx);

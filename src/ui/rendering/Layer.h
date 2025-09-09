@@ -61,6 +61,7 @@ class Layer : public std::enable_shared_from_this<Layer> {
     std::weak_ptr<ui::element::Element> _owner;
 
     void sortChildrenByZIndex();
+    Rectangle getElementsBoundingRect() const;
 
   public:
     Layer(std::shared_ptr<ui::element::Element> owner);
@@ -92,6 +93,8 @@ class Layer : public std::enable_shared_from_this<Layer> {
     bool isClean() const;
 
     void clearRenderTarget();
+
+    // void onOwnerSizeChanged(unsigned int width, unsigned int height);
 
     void appendChild(std::shared_ptr<Layer> child);
     void removeChild(std::shared_ptr<Layer> child);
