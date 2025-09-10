@@ -153,15 +153,19 @@ void StackingContext::render() {
 
     auto useLayerGuard = layer->use();
     if (!owner->isNotDisplayed()) {
-        owner->render();
+        std::stack<std::shared_ptr<ui::element::Element>> stack;
+        stack.push(owner);
 
-        /*
-        TODO : render from owner
-        for (auto e : _elements) {
-            if (auto element = e.lock())
-                if (!element->isNotDisplayed())
-                    element->render();
-        }*/
+        while (!stack.empty()) {
+            auto e = stack.top();
+            stack.pop();
+
+            if (!e->isNotDisplayed()) {
+                e->render();
+                for (auto child : e->getChildren())
+                    stack.push(e);
+            }
+        }
     }
 }
 
@@ -204,7 +208,8 @@ std::vector<std::shared_ptr<ui::element::Element>> StackingContext::getElements(
 }
 
 void StackingContext::skipChild(std::shared_ptr<StackingContext> child) {
-    if (!child) return;
+    if (!child)
+        return;
 
     if (std::find(_children.begin(), _children.end(), child) == _children.end()) {
         const auto errorMessage =
@@ -215,7 +220,7 @@ void StackingContext::skipChild(std::shared_ptr<StackingContext> child) {
 
     auto self = shared_from_this();
 
-    for (auto grandChild: child->getChildren()) {
+    for (auto grandChild : child->getChildren()) {
         grandChild->setParent(self);
         appendChild(grandChild);
     }
@@ -270,7 +275,7 @@ std::shared_ptr<StackingContext> StackingContext::BuildTree(std::shared_ptr<ui::
             e->setStackingContext(ctx);
             if (parentCtx)
                 parentCtx->appendChild(ctx);
- 
+
             if (e == elementsRoot)
                 rootCtx = ctx;
         } else {

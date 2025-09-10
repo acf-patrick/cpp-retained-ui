@@ -805,8 +805,8 @@ void Element::drawBorder(const Rectangle &bb) {
     }
 }
 
-void Element::render() {
-    // TODO : render element at a given offset (layer offset)
+void Element::render(/* OFFSET GOES HERE */) {
+    // TODO : render element at a given offset (provided offset)
 
     const auto bb = getBoundingRect();
 
