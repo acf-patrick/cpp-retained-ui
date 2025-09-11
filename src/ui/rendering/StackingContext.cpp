@@ -133,7 +133,7 @@ bool StackingContext::hasItsOwnLayer() const {
     return false;
 }
 
-void StackingContext::render(ScissorStack& scissorStack) {
+Vector2 StackingContext::render(ScissorStack& scissorStack, const Vector2& parentOffset) {
     auto layer = getLayer();
     if (!layer) {
         TraceLog(LOG_ERROR, "[StackingContext] %d does not have a layer", _id);
@@ -150,38 +150,50 @@ void StackingContext::render(ScissorStack& scissorStack) {
     if (!layer->isClean())
         layer->clearRenderTarget();
 
-    // TODO : render element relative to given layer
+    Vector2 offset = parentOffset;
+    if (hasItsOwnLayer()) // begin a new drawing origin
+        offset.x = offset.y = 0.0;
+
+    // TODO : we may want to update layer's position (cache)
 
     auto useLayerGuard = layer->use();
     if (!owner->isNotDisplayed()) {
-        std::stack<std::shared_ptr<ui::element::Element>> stack;
-        stack.push(owner);
+        std::stack<std::pair<std::shared_ptr<ui::element::Element>, Vector2>> stack;
+        stack.push({ owner, offset });
 
         while (!stack.empty()) {
-            auto e = stack.top();
+            auto [e, offset] = stack.top();
             stack.pop();
 
+            // TODO : use scissor stack
+
             if (!e->isNotDisplayed() && e->belongsTo(self)) {
-                e->render();
+                e->render(offset);
+                const auto rect = e->getBoundingRect();
+                const Vector2 newOffset { offset.x + rect.x, offset.y + rect.y };
+
                 for (auto child : e->getChildren())
-                    stack.push(e);
+                    stack.push({ child, newOffset });
             }
         }
     }
+
+    const auto rect = owner->getBoundingRect();
+    return Vector2 { offset.x + rect.x, offset.y + rect.y };
 }
 
 void StackingContext::renderTree() {
     ScissorStack scissorStack;
-    std::stack<std::shared_ptr<StackingContext>> stack;
-    stack.push(shared_from_this());
+    std::stack<std::pair<std::shared_ptr<StackingContext>, Vector2>> stack;
+    stack.push({ shared_from_this(), Vector2 { 0.0, 0.0 } });
 
     while (!stack.empty()) {
-        auto ctx = stack.top();
+        auto [ctx, parentOffset] = stack.top();
         stack.pop();
 
-        ctx->render(scissorStack);
+        const auto newOffset = ctx->render(scissorStack, parentOffset);
         for (auto child : ctx->getChildren())
-            stack.push(child);
+            stack.push({ child, newOffset });
     }
 }
 

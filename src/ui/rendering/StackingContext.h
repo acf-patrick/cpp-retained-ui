@@ -48,6 +48,12 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
 
     void takeOwnershipOfElements(std::shared_ptr<StackingContext> ctx);
 
+    // Render this node
+    // @param scissorStack Rectangle crop stack for overflow and scroll
+    // @param offset Offset from parent context if this context does not have its own layer
+    // @return combined offset from this context's owner
+    Vector2 render(ScissorStack& scissorStack, const Vector2& offset = Vector2 { 0.0, 0.0 });
+
   public:
     StackingContext(std::shared_ptr<ui::element::Element> owner);
     ~StackingContext();
@@ -59,10 +65,6 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
 
     // Render self and children in stack way
     void renderTree();
-    
-    // Render this node
-    // @param scissorStack Rectangle crop stack for overflow and scroll
-    void render(ScissorStack& scissorStack);
 
     Context getContext() const;
     StackingContextId getId() const;

@@ -139,6 +139,9 @@ void Element::removeAllChildren() {
 }
 
 Vector2 Element::getPosition() const {
+    // TODO
+    throw std::runtime_error("Element::getPosition not implemented yet");
+
     const auto rect = getBoundingRect();
     return Vector2{rect.x, rect.y};
 }
