@@ -137,14 +137,14 @@ Vector2 StackingContext::render(ScissorStack& scissorStack, const Vector2& paren
     auto layer = getLayer();
     if (!layer) {
         TraceLog(LOG_ERROR, "[StackingContext] %d does not have a layer", _id);
-        return;
+        return parentOffset;
     }
 
     auto self = shared_from_this();
     auto owner = getOwner();
     if (!owner) {
         TraceLog(LOG_ERROR, "[StackingContext] %d does not have an owner element", _id);
-        return;
+        return parentOffset;
     }
 
     if (!layer->isClean())
