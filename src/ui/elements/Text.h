@@ -20,7 +20,7 @@ class Text : public Element {
  public:
   Text(const std::string& text);
   void setText(const std::string& text);
-  void render() override;
+  void render(const Vector2&) override;
 };
 
 }  // namespace element

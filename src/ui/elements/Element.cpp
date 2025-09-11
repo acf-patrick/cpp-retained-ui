@@ -794,10 +794,10 @@ void Element::drawBorder(const Rectangle &bb) {
     }
 }
 
-void Element::render(/* OFFSET GOES HERE */) {
-    // TODO : render element at a given offset (provided offset)
-
-    const auto bb = getBoundingRect();
+void Element::render(const Vector2& offset) {
+    auto bb = getBoundingRect();
+    bb.x += offset.x;
+    bb.y += offset.y;
 
     drawBackground(bb);
     drawBorder(bb);
@@ -815,6 +815,11 @@ void Element::setStackingContext(std::shared_ptr<ui::rendering::StackingContext>
 
 std::shared_ptr<ui::rendering::StackingContext> Element::getStackingContext() const {
     return _stackingContext.lock();
+}
+
+
+bool Element::belongsTo(std::shared_ptr<ui::rendering::StackingContext> ctx) const {
+    return ctx == _stackingContext.lock();
 }
 
 int Element::getSegmentCount(float radius) const {

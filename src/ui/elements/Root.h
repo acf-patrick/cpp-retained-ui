@@ -29,7 +29,7 @@ class Root : public Element {
     // check for styles and layout update
     void update();
 
-    void render() override;
+    void render(const Vector2&) override;
 
     void onWindowResized(int newScreenWidth, int newScreenHeight);
 

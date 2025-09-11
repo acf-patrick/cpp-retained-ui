@@ -98,7 +98,7 @@ void Root::update() {
         propagateStyles();
 }
 
-void Root::render() {
+void Root::render(const Vector2& offset) {
     std::string errorMessage;
     if (!_finalized)
         errorMessage = "[Root] Rendering non-finalized root element\n";
@@ -114,7 +114,7 @@ void Root::render() {
         throw std::logic_error(errorMessage);
     }
 
-    Element::render();
+    Element::render(offset);
 }
 
 void Root::onWindowResized(int newWidth, int newHeight) {

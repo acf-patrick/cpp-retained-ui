@@ -47,7 +47,7 @@ void Image::loadAltImageIconTexture() {
     UnloadImage(icon);
 }
 
-void Image::render() {
+void Image::render(const Vector2& offset) {
     auto textures = repository::TextureRepository::Get();
     if (!textures) {
         const std::string errorMessage("[Image] Texture repository not initialized.");
@@ -58,14 +58,16 @@ void Image::render() {
     auto optTexture = textures->get(_src);
     if (!optTexture) {
         loadAltImageIconTexture();
-        drawAlt();
+        drawAlt(offset);
         return;
     }
 
-    Element::render();
+    Element::render(offset);
 
     auto texture = *optTexture;
     auto bb = getBoundingRect();
+    bb.x += offset.x;
+    bb.y += offset.y;
 
     if (texture.width != bb.width || texture.height != bb.height) { // we have to scale and/or reposition image
         Rectangle src = {
@@ -92,7 +94,6 @@ void Image::render() {
             const auto scale = std::min(bb.width / texture.width, bb.height / texture.height);
             dest.width = scale * texture.width;
             dest.height = scale * texture.height;
-            // std::cout << "scale : " << scale << std::endl;
             repositionDrawingRectangles(src, dest, scale);
         } break;
 
@@ -120,9 +121,11 @@ void Image::render() {
     }
 }
 
-void Image::drawAlt() {
+void Image::drawAlt(const Vector2& offset) {
     loadAltImageIconTexture();
-    const auto bb = getBoundingRect();
+    auto bb = getBoundingRect();
+    bb.x += offset.x;
+    bb.y += offset.y;
     const int margin = 8;
 
     DrawTexture(*_iconTexture, bb.x, bb.y, WHITE);

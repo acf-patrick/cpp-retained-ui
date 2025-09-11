@@ -30,7 +30,7 @@ void Text::setText(const std::string &text) {
     updateLayout(layout);
 }
 
-void Text::render() {
+void Text::render(const Vector2& offset) {
     static bool firstRender = true;
     if (firstRender) {
         firstRender = false;
@@ -38,6 +38,9 @@ void Text::render() {
     }
 
     auto bb = getBoundingRect();
+    bb.x += offset.x;
+    bb.y += offset.y;
+
     const auto fontSize = _cachedInheritableProps.fontSize.unwrap();
     const auto color = _cachedInheritableProps.color.unwrap();
 

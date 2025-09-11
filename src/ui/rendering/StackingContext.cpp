@@ -133,13 +133,14 @@ bool StackingContext::hasItsOwnLayer() const {
     return false;
 }
 
-void StackingContext::render() {
+void StackingContext::render(ScissorStack& scissorStack) {
     auto layer = getLayer();
     if (!layer) {
         TraceLog(LOG_ERROR, "[StackingContext] %d does not have a layer", _id);
         return;
     }
 
+    auto self = shared_from_this();
     auto owner = getOwner();
     if (!owner) {
         TraceLog(LOG_ERROR, "[StackingContext] %d does not have an owner element", _id);
@@ -160,7 +161,7 @@ void StackingContext::render() {
             auto e = stack.top();
             stack.pop();
 
-            if (!e->isNotDisplayed()) {
+            if (!e->isNotDisplayed() && e->belongsTo(self)) {
                 e->render();
                 for (auto child : e->getChildren())
                     stack.push(e);
@@ -170,6 +171,7 @@ void StackingContext::render() {
 }
 
 void StackingContext::renderTree() {
+    ScissorStack scissorStack;
     std::stack<std::shared_ptr<StackingContext>> stack;
     stack.push(shared_from_this());
 
@@ -177,7 +179,7 @@ void StackingContext::renderTree() {
         auto ctx = stack.top();
         stack.pop();
 
-        ctx->render();
+        ctx->render(scissorStack);
         for (auto child : ctx->getChildren())
             stack.push(child);
     }

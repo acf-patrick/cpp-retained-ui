@@ -17,7 +17,7 @@ class Image : public Element {
 
   private:
     // Draw alternative text
-    void drawAlt();
+    void drawAlt(const Vector2&);
 
     /**
      * Compute source and destination rects to draw final image
@@ -40,7 +40,7 @@ class Image : public Element {
     std::string getSource() const;
     void setSource(const std::string &src);
 
-    void render() override;
+    void render(const Vector2&) override;
 };
 
 } // namespace element

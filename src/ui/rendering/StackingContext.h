@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 
+#include "./ScissorStack.h"
 #include "../styles/Transform.h"
 
 namespace ui {
@@ -60,7 +61,8 @@ class StackingContext : public std::enable_shared_from_this<StackingContext> {
     void renderTree();
     
     // Render this node
-    void render();
+    // @param scissorStack Rectangle crop stack for overflow and scroll
+    void render(ScissorStack& scissorStack);
 
     Context getContext() const;
     StackingContextId getId() const;

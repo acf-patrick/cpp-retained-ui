@@ -87,7 +87,8 @@ class Element : public std::enable_shared_from_this<Element> {
     virtual ~Element();
 
     // Custom implementation for inherited classes should only render themselves not their children.
-    virtual void render();
+    // @param offset Supposed to be parent offset vector
+    virtual void render(const Vector2& offset = Vector2 { 0.0, 0.0 });
 
     Element &appendChild(std::shared_ptr<Element> child);
 
@@ -136,6 +137,8 @@ class Element : public std::enable_shared_from_this<Element> {
     std::shared_ptr<Element> getParent() const;
 
     std::vector<std::shared_ptr<Element>> getChildren();
+
+    bool belongsTo(std::shared_ptr<ui::rendering::StackingContext> ctx) const;
 
     // Get bouding box of current element relative to nearest parent
     // Might be invalid if called before layout calculation

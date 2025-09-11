@@ -12,6 +12,7 @@ class ScissorStack {
 public:
     ScissorStack() = default;
 
+    void clear();
     Rectangle top() const;
     void push(const Rectangle&);
     Rectangle pop();

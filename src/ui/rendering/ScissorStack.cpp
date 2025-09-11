@@ -3,6 +3,10 @@
 namespace ui {
 namespace rendering {
 
+void ScissorStack::clear() {
+    _stack = std::stack<Rectangle>();
+}
+
 Rectangle ScissorStack::top() const {
     return _stack.top();
 }
@@ -18,13 +22,17 @@ void ScissorStack::push(const Rectangle &rect) {
 }
 
 Rectangle ScissorStack::pop() {
+    auto rect = _stack.top();
     _stack.pop();
+
     if (_stack.empty())
         EndScissorMode();
     else {
         const auto latest = _stack.top();
         BeginScissorMode(latest.x, latest.y, latest.width, latest.height);
     }
+
+    return rect;
 }
 
 } // namespace rendering
