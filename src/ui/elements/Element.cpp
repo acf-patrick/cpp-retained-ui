@@ -21,8 +21,6 @@ Element::ElementId Element::nextId = 0;
 Element::Element(const std::string &name)
     : _preferredTheme(ui::style::Theme::Dark), _name(name), _dirtyCachedInheritableProps(true) {
     _id = nextId++;
-    _absolutePosition = {.x = 0.0, .y = 0.0};
-
     _yogaNode = YGNodeNew();
     updateStyle(ui::defaults::elementStyles(_preferredTheme));
     updateLayout(ui::defaults::elementLayout());
@@ -165,7 +163,7 @@ Rectangle Element::getFinalBoundingRect() const {
         origin.x = bb.width / 2;
         origin.y = bb.height / 2;
     } else {
-        auto& originPosition = std::get<style::TransformOriginPosition>(_style.transformOrigin);
+        auto &originPosition = std::get<style::TransformOriginPosition>(_style.transformOrigin);
 
         if (auto x = std::get_if<utils::Value<int>>(&originPosition.x)) {
             origin.x = x->value;
@@ -213,8 +211,8 @@ Rectangle Element::getFinalBoundingRect() const {
 }
 
 Rectangle Element::getBoundingRect() const {
-    Rectangle bb = {.x = _absolutePosition.x,
-                    .y = _absolutePosition.y,
+    Rectangle bb = {.x = YGNodeLayoutGetLeft(_yogaNode),
+                    .y = YGNodeLayoutGetTop(_yogaNode),
                     .width = YGNodeLayoutGetWidth(_yogaNode),
                     .height = YGNodeLayoutGetHeight(_yogaNode)};
     return bb;
@@ -252,15 +250,6 @@ style::Style Element::getStyle() const {
 
 style::Layout Element::getLayout() const {
     return _layout;
-}
-
-void Element::updateAbsolutePosition() {
-    if (auto parent = _parent.lock()) {
-        _absolutePosition.x =
-            YGNodeLayoutGetLeft(_yogaNode) + parent->_absolutePosition.x;
-        _absolutePosition.y =
-            YGNodeLayoutGetTop(_yogaNode) + parent->_absolutePosition.y;
-    }
 }
 
 void Element::updateStyle(const style::Style &style) {

@@ -39,7 +39,6 @@ class Element : public std::enable_shared_from_this<Element> {
     ElementId _id;
     ui::style::Theme _preferredTheme;
     std::string _name;         // name of this element
-    Vector2 _absolutePosition; // relative to root element
     std::weak_ptr<Element> _parent;
     std::weak_ptr<ui::rendering::StackingContext> _stackingContext;
     std::vector<std::shared_ptr<Element>> _children;
@@ -118,10 +117,6 @@ class Element : public std::enable_shared_from_this<Element> {
 
     bool isRoot() const;
 
-    // Warning : must be called after layout calculation. Compute absolute
-    // position of this element from parent's absolute position
-    void updateAbsolutePosition();
-
     std::vector<std::shared_ptr<Element>> getSiblings();
 
     ElementId getId() const;
@@ -142,7 +137,7 @@ class Element : public std::enable_shared_from_this<Element> {
 
     std::vector<std::shared_ptr<Element>> getChildren();
 
-    // Get bouding box of current element. (absolutePosition + yoga size)
+    // Get bouding box of current element relative to nearest parent
     // Might be invalid if called before layout calculation
     Rectangle getBoundingRect() const;
 

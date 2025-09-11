@@ -64,20 +64,6 @@ void Root::onPreferredThemeChanged(ui::style::Theme theme) {
 
 void Root::calculateLayout() {
     YGNodeCalculateLayout(_yogaNode, YGUndefined, YGUndefined, YGDirectionLTR);
-
-    std::queue<std::shared_ptr<Element>> queue;
-    auto self = shared_from_this();
-    queue.push(self);
-
-    while (!queue.empty()) {
-        auto node = queue.front();
-        queue.pop();
-
-        node->updateAbsolutePosition();
-        for (auto &child : node->getChildren())
-            queue.push(child);
-    }
-
     _dirtyLayout = false;
 }
 
